@@ -13,9 +13,8 @@ public class Conversation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // tipo: "direct" o "group"
     @Column(nullable = false)
-    private String type;
+    private String type; // "direct" o "group"
 
     @Column
     private String title;
@@ -23,50 +22,33 @@ public class Conversation {
     @Column(nullable = false)
     private Instant createdAt = Instant.now();
 
-    // Lista de participantes (solo guardamos IDs de usuario)
-    @ElementCollection
-    @CollectionTable(
-            name = "conversation_participants",
-            joinColumns = @JoinColumn(name = "conversation_id")
-    )
-    @Column(name = "user_id")
-    private Set<Long> participants = new HashSet<>();
+    // --- CORRECCIÓN ---
+    // Se elimina el @ElementCollection y se reemplaza con una relación @OneToMany
+    // Esto le dice a Hibernate que la lista de participantes se gestiona a través
+    // de la entidad ConversationParticipant.
+    @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<ConversationParticipant> participants = new HashSet<>();
 
     public Conversation() {}
 
-    // Getters y setters...
-    public Long getId() {
-        return id;
-    }
-    public void setId(Long id) {
+    // Constructor para facilitar la creación en MessageService
+    public Conversation(Long id) {
         this.id = id;
     }
 
-    public String getType() {
-        return type;
-    }
-    public void setType(String type) {
-        this.type = type;
-    }
+    // Getters y setters...
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public String getTitle() {
-        return title;
-    }
-    public void setTitle(String title) {
-        this.title = title;
-    }
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
 
-    public Set<Long> getParticipants() {
-        return participants;
-    }
-    public void setParticipants(Set<Long> participants) {
-        this.participants = participants;
-    }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+
+    public Set<ConversationParticipant> getParticipants() { return participants; }
+    public void setParticipants(Set<ConversationParticipant> participants) { this.participants = participants; }
 }
