@@ -3,68 +3,82 @@ package com.chatprivate.messaging.service;
 import com.chatprivate.messaging.dto.*;
 import com.chatprivate.messaging.model.*;
 import com.chatprivate.messaging.repository.*;
+// Asumo que tu entidad User está en este paquete, ajusta si es necesario
+import com.chatprivate.user.User;
 import com.chatprivate.user.UserRepository;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.Optional;
 
 @Service
-@RequiredArgsConstructor
 public class ConversationService {
 
     private final ConversationRepository conversationRepository;
-    private final ConversationParticipantRepository participantRepository;
+    private final ConversationParticipantRepository conversationParticipantRepository;
     private final UserRepository userRepository;
 
-    /**
-     * Crea conversación, agrega al creador como owner y opcionalmente otros participantes.
-     */
+    public ConversationService(ConversationRepository conversationRepository,
+                               ConversationParticipantRepository conversationParticipantRepository,
+                               UserRepository userRepository) {
+        this.conversationRepository = conversationRepository;
+        this.conversationParticipantRepository = conversationParticipantRepository;
+        this.userRepository = userRepository;
+    }
+
     @Transactional
     public ConversationResponse createConversation(CreateConversationRequest req, Long creatorId) {
         Conversation conv = new Conversation();
         conv.setType(req.getType() == null ? "direct" : req.getType());
         conv.setTitle(req.getTitle());
-        conv = conversationRepository.save(conv);
 
-        // Owner (creador)
+        // CORRECCIÓN 1: Se usa una nueva variable 'final' para el resultado de save().
+        final Conversation savedConv = conversationRepository.save(conv);
+
         ConversationParticipant owner = new ConversationParticipant();
-        owner.setConversation(conv);
+        owner.setConversation(savedConv);
         owner.setUserId(creatorId);
         owner.setRole("owner");
-        participantRepository.save(owner);
+        conversationParticipantRepository.save(owner);
 
-        // Agregar participantes iniciales (si se envían)
-        if (req.getParticipantIds() != null) {
-            for (Long uId : req.getParticipantIds()) {
-                if (uId == null || uId.equals(creatorId)) continue;
-                if (!userRepository.existsById(uId)) continue; // ignorar usuarios no existentes
-                if (!participantRepository.existsByConversation_IdAndUserId(conv.getId(), uId)) {
-                    ConversationParticipant p = new ConversationParticipant();
-                    p.setConversation(conv);
-                    p.setUserId(uId);
-                    p.setRole("member");
-                    participantRepository.save(p);
-                }
+        if (req.getParticipantIds() != null && !req.getParticipantIds().isEmpty()) {
+            List<Long> participantIdsToAdd = req.getParticipantIds().stream()
+                    .filter(id -> id != null && !id.equals(creatorId))
+                    .collect(Collectors.toList());
+
+            List<Long> existingUserIds = userRepository.findAllById(participantIdsToAdd)
+                    .stream()
+                    .map(User::getId)
+                    .collect(Collectors.toList());
+
+            List<ConversationParticipant> newParticipants = existingUserIds.stream().map(userId -> {
+                ConversationParticipant p = new ConversationParticipant();
+                // Usamos la variable 'final' que no cambia.
+                p.setConversation(savedConv);
+                p.setUserId(userId);
+                p.setRole("member");
+                return p;
+            }).collect(Collectors.toList());
+
+            if (!newParticipants.isEmpty()) {
+                conversationParticipantRepository.saveAll(newParticipants);
             }
         }
 
-        return toResponse(conv);
+        return getConversationResponseById(savedConv.getId());
     }
 
-    /**
-     * Añadir participante: solo el owner puede añadir.
-     */
     @Transactional
     public void addParticipant(Long conversationId, Long requesterId, AddParticipantRequest req) {
+        // CORRECCIÓN 2: Buscamos la conversación primero para tener el objeto completo.
         Conversation conv = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversación no encontrada"));
 
-        // solo owner puede añadir
         if (!isOwner(conversationId, requesterId)) {
             throw new AccessDeniedException("Solo el owner puede añadir participantes");
         }
@@ -74,73 +88,82 @@ public class ConversationService {
             throw new IllegalArgumentException("Usuario a añadir no existe");
         }
 
-        if (participantRepository.existsByConversation_IdAndUserId(conversationId, userId)) {
-            return; // ya está agregado (no falla)
+        if (conversationParticipantRepository.existsByConversation_IdAndUserId(conversationId, userId)) {
+            return;
         }
 
         ConversationParticipant p = new ConversationParticipant();
+        // Asignamos el objeto 'Conversation' que ya obtuvimos.
         p.setConversation(conv);
         p.setUserId(userId);
         p.setRole(req.getRole() == null ? "member" : req.getRole());
-        participantRepository.save(p);
+        conversationParticipantRepository.save(p);
     }
 
-    /**
-     * Eliminar participante: lo puede hacer el owner o el propio usuario (retirarse).
-     */
     @Transactional
     public void removeParticipant(Long conversationId, Long requesterId, Long userIdToRemove) {
-        Conversation conv = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> new IllegalArgumentException("Conversación no encontrada"));
-
         boolean requesterIsOwner = isOwner(conversationId, requesterId);
         if (!requesterIsOwner && !requesterId.equals(userIdToRemove)) {
-            throw new AccessDeniedException("No autorizado para eliminar a ese participante");
+            throw new AccessDeniedException("No autorizado para eliminar a este participante");
         }
 
-        Optional<ConversationParticipant> opt = participantRepository
-                .findByConversation_IdAndUserId(conversationId, userIdToRemove);
-        opt.ifPresent(participantRepository::delete);
+        ConversationParticipant participant = conversationParticipantRepository
+                .findByConversation_IdAndUserId(conversationId, userIdToRemove)
+                .orElseThrow(() -> new IllegalArgumentException("El participante no se encuentra en esta conversación"));
+
+        conversationParticipantRepository.delete(participant);
     }
 
-    /**
-     * Listo participante de una conversación
-     */
     @Transactional(readOnly = true)
     public List<ParticipantDto> getParticipants(Long conversationId) {
-        return participantRepository.findByConversation_Id(conversationId)
+        return conversationParticipantRepository.findByConversation_Id(conversationId)
                 .stream()
                 .map(this::toParticipantDto)
                 .collect(Collectors.toList());
     }
 
-
-     //lista de conversaciones en las que está el Usuario
-
     @Transactional(readOnly = true)
     public List<ConversationResponse> getUserConversations(Long userId) {
-        return participantRepository.findByUserId(userId)
-                .stream()
-                .map(cp -> toResponse(cp.getConversation()))
+        List<Conversation> conversations = conversationParticipantRepository.findConversationsByUserId(userId);
+        if (conversations.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Long> conversationIds = conversations.stream().map(Conversation::getId).collect(Collectors.toList());
+
+        List<ConversationParticipant> allParticipants = conversationParticipantRepository.findByConversation_IdIn(conversationIds);
+
+        Map<Long, List<ParticipantDto>> participantsByConvId = allParticipants.stream()
+                .collect(Collectors.groupingBy(
+                        p -> p.getConversation().getId(),
+                        Collectors.mapping(this::toParticipantDto, Collectors.toList())
+                ));
+
+        return conversations.stream()
+                .map(conv -> toResponse(conv, participantsByConvId.getOrDefault(conv.getId(), Collections.emptyList())))
                 .collect(Collectors.toList());
     }
 
-    // helpers
+    private ConversationResponse getConversationResponseById(Long conversationId) {
+        Conversation conv = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new IllegalArgumentException("Conversación no encontrada"));
+        List<ParticipantDto> participants = getParticipants(conversationId);
+        return toResponse(conv, participants);
+    }
+
     private boolean isOwner(Long conversationId, Long userId) {
-        return participantRepository.findByConversation_IdAndUserId(conversationId, userId)
+        return conversationParticipantRepository.findByConversation_IdAndUserId(conversationId, userId)
                 .map(p -> "owner".equalsIgnoreCase(p.getRole()))
                 .orElse(false);
     }
 
-    private ConversationResponse toResponse(Conversation conv) {
+    private ConversationResponse toResponse(Conversation conv, List<ParticipantDto> participants) {
         ConversationResponse r = new ConversationResponse();
         r.setId(conv.getId());
         r.setType(conv.getType());
         r.setTitle(conv.getTitle());
         r.setCreatedAt(conv.getCreatedAt());
-        List<ParticipantDto> parts = participantRepository.findByConversation_Id(conv.getId())
-                .stream().map(this::toParticipantDto).collect(Collectors.toList());
-        r.setParticipants(parts);
+        r.setParticipants(participants);
         return r;
     }
 
