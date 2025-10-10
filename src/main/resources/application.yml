@@ -1,0 +1,26 @@
+server:
+  port: 8080  # Puerto donde correrá tu API
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/chatPrivate?useSSL=false&serverTimezone=UTC
+    username: root         # <-- tu usuario de MySQL
+    password: 5095  # <-- tu password de MySQL
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update     # crea/actualiza tablas automáticamente (en dev)
+    show-sql: true         # muestra SQL en consola
+    properties:
+      hibernate:
+        format_sql: true
+    dialect: org.hibernate.dialect.MySQL8Dialect
+
+
+
+# JWT (los valores que usas en JwtService)
+app:
+  jwt:
+    secret: "b49aa764aa2871f12ac13b390221b494f7d9e1e748e0a1f136b9285f82cb99e2" # mínimo 32 chars
+    expirationMs: 86400000  # 24 horas en milisegundos
