@@ -2,7 +2,7 @@ package com.chatprivate.messaging.dto;
 
 public class AddParticipantRequest {
     private Long userId;
-    private String role; // "member" por defecto
+    private String role;
 
     public AddParticipantRequest() {}
 

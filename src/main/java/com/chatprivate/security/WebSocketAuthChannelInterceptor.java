@@ -19,7 +19,7 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
     private UserDetailsService userDetailsService;
 
     public WebSocketAuthChannelInterceptor() {
-        // NO usar new() para jwtService en prod; inyectar con @Component + constructor.
+
     }
 
     @Override
@@ -46,7 +46,7 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
         return message;
     }
 
-    // setters para inyectar beans desde contexto (o conviértelo a @Component y autowired)
+
     public void setJwtService(JwtService jwtService) { this.jwtService = jwtService; }
     public void setUserDetailsService(UserDetailsService uds) { this.userDetailsService = uds; }
 }

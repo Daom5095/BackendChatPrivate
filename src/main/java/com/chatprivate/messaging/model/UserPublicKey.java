@@ -7,8 +7,7 @@ import java.time.Instant;
 @Table(name = "user_public_keys")
 public class UserPublicKey {
     @Id
-    private Long userId; // PK = user id (asumimos tabla users existe)
-
+    private Long userId;
     @Column(columnDefinition = "TEXT", nullable = false)
     private String publicKeyPem; // clave pública en formato PEM/Base64
 

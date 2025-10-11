@@ -37,7 +37,7 @@ public class ConversationService {
         conv.setType(req.getType() == null ? "direct" : req.getType());
         conv.setTitle(req.getTitle());
 
-        // CORRECCIÓN 1: Se usa una nueva variable 'final' para el resultado de save().
+
         final Conversation savedConv = conversationRepository.save(conv);
 
         ConversationParticipant owner = new ConversationParticipant();
@@ -75,7 +75,7 @@ public class ConversationService {
 
     @Transactional
     public void addParticipant(Long conversationId, Long requesterId, AddParticipantRequest req) {
-        // CORRECCIÓN 2: Buscamos la conversación primero para tener el objeto completo.
+
         Conversation conv = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversación no encontrada"));
 

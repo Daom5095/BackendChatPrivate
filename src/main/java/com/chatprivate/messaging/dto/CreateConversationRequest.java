@@ -5,7 +5,7 @@ import java.util.List;
 public class CreateConversationRequest {
     private String type;
     private String title;
-    private List<Long> participantIds; // opcional: ids iniciales a agregar
+    private List<Long> participantIds;
 
     public CreateConversationRequest() {}
 

@@ -31,7 +31,7 @@ public class MessageService {
     public void sendAndStoreMessage(Long senderId, Long conversationId, String ciphertext, Map<Long,String> encryptedKeys) {
         // Construimos el message y lo persistimos
         Conversation conv = new Conversation();
-        conv.setId(conversationId); // si conversacion existe, lo ideal es buscarla; aquí asumimos que existe
+        conv.setId(conversationId);
         Message message = new Message();
         message.setConversation(conv);
         message.setSenderId(senderId);

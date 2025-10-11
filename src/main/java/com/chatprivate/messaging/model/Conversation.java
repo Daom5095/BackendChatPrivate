@@ -22,10 +22,6 @@ public class Conversation {
     @Column(nullable = false)
     private Instant createdAt = Instant.now();
 
-    // --- CORRECCIÓN ---
-    // Se elimina el @ElementCollection y se reemplaza con una relación @OneToMany
-    // Esto le dice a Hibernate que la lista de participantes se gestiona a través
-    // de la entidad ConversationParticipant.
     @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ConversationParticipant> participants = new HashSet<>();
 
