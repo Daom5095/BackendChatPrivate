@@ -8,6 +8,9 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.chatprivate.messaging.model.UserPublicKey;
+import com.chatprivate.messaging.repository.UserPublicKeyRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserService {
@@ -15,15 +18,20 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final UserPublicKeyRepository userPublicKeyRepository;
 
     // Constructor manual
     public UserService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
-                       JwtService jwtService) {
+                       JwtService jwtService,
+                       UserPublicKeyRepository userPublicKeyRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.userPublicKeyRepository = userPublicKeyRepository;
     }
+
+    @Transactional
 
     public AuthResponse register(RegisterRequest request) {
         // construimos el User manualmente con nuestro builder manual
@@ -33,10 +41,16 @@ public class UserService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .build();
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        if (request.getPublicKey() != null && !request.getPublicKey().isEmpty()) {
+            UserPublicKey upk = new UserPublicKey();
+            upk.setUserId(savedUser.getId());
+            upk.setPublicKeyPem(request.getPublicKey());
+            userPublicKeyRepository.save(upk);
+        }
 
         String token = jwtService.generateToken(user);
-        // usamos también builder manual de AuthResponse
         return AuthResponse.builder()
                 .token(token)
                 .build();

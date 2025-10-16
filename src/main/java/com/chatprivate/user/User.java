@@ -3,6 +3,7 @@ package com.chatprivate.user;
 import jakarta.persistence.*;
 import java.time.Instant;
 
+
 @Entity
 @Table(name = "users")
 public class User {
