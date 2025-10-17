@@ -50,7 +50,7 @@ public class UserService {
             userPublicKeyRepository.save(upk);
         }
 
-        String token = jwtService.generateToken(user);
+        String token = jwtService.generateToken(savedUser);
         return AuthResponse.builder()
                 .token(token)
                 .build();
