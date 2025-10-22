@@ -4,10 +4,14 @@ import java.time.Instant;
 
 public class ParticipantDto {
     private Long userId;
+    private String username;
     private String role;
     private Instant joinedAt;
 
     public ParticipantDto() {}
+
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
 
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }

@@ -39,25 +39,17 @@ public class MessageService {
         message = messageRepository.save(message);
 
         // Guardamos claves cifradas por destinatario y enviamos por WebSocket a cada user
-        for (Map.Entry<Long,String> e : encryptedKeys.entrySet()) {
-            Long recipientId = e.getKey();
-            String encKey = e.getValue();
+        for (Long recipientId : encryptedKeys.keySet()) {
+    String encKey = encryptedKeys.get(recipientId); // Obtiene el valor (placeholder por ahora)
 
-            MessageKey mk = new MessageKey();
-            mk.setMessage(message);
-            mk.setRecipientId(recipientId);
-            mk.setEncryptedKey(encKey);
-            messageKeyRepository.save(mk);
+    StompMessagePayload payload = new StompMessagePayload();
+    payload.setConversationId(conversationId);
+    payload.setCiphertext(ciphertext);
+    payload.setSenderId(senderId);
+    // payload.setEncryptedKeys(...); // Podrías enviar solo la clave de este destinatario
 
-            // Enviamos al usuario usando destination /user/{principalName}/queue/messages
-            StompMessagePayload payload = new StompMessagePayload();
-            payload.setConversationId(conversationId);
-            payload.setCiphertext(ciphertext);
-            payload.setSenderId(senderId);
-            payload.setEncryptedKeys(Map.of(recipientId, encKey)); // payload con la key para ese usuario
-
-            // Enviar a user: el principal que puso el interceptor debe devolver .getName() igual a recipientId.toString() o username
-            simpMessagingTemplate.convertAndSendToUser(recipientId.toString(), "/queue/messages", payload);
-        }
+    // Envía al destinatario específico
+    simpMessagingTemplate.convertAndSendToUser(recipientId.toString(), "/queue/messages", payload);
+}
     }
 }
