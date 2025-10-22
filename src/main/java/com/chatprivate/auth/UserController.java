@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.chatprivate.user.CustomUserDetails; // Importar
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,8 +24,11 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<String> getMe(Authentication authentication) {
-        return ResponseEntity.ok("Usuario autenticado: " + authentication.getName());
+    public ResponseEntity<UserDto> getMe(Authentication authentication) {
+        // Obtenemos el UserDetails completo de la autenticación
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        // Creamos y devolvemos un DTO con el ID y el username
+        return ResponseEntity.ok(new UserDto(userDetails.getUser().getId(), userDetails.getUsername()));
     }
 
     @GetMapping
@@ -32,7 +36,6 @@ public class UserController {
         String currentUsername = authentication.getName();
         List<UserDto> users = userRepository.findAll()
                 .stream()
-                // Filtramos para no incluir al usuario actual en la lista
                 .filter(user -> !user.getUsername().equals(currentUsername))
                 .map(user -> new UserDto(user.getId(), user.getUsername()))
                 .collect(Collectors.toList());
