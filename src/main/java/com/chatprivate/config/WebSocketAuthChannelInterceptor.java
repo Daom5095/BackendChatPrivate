@@ -1,7 +1,7 @@
-package com.chatprivate.config;
+package com.chatprivate.config; // O com.chatprivate.security, asegúrate que sea el correcto
 
 import com.chatprivate.security.JwtService;
-import com.chatprivate.user.CustomUserDetails;
+import com.chatprivate.user.CustomUserDetails; // Necesario si StompChatController lo usa
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -9,12 +9,11 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder; // <-- 1. IMPORTANTE
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
-
-import java.security.Principal;
+// Quita import java.security.Principal si no se usa directamente aquí
 
 @Component
 public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
@@ -31,37 +30,32 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+
         if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
             String authHeader = accessor.getFirstNativeHeader("Authorization");
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
                 try {
                     String username = jwtService.extractUsername(token);
-                    if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) { // <-- 2. VERIFICACIÓN AÑADIDA
+                    // Solo si hay username y no hay autenticación previa en el contexto
+                    if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                        if (userDetails != null && jwtService.isTokenValid(token, userDetails)) {
-
-                            // --- INICIO DE LA CORRECCIÓN ---
-
-                            // 3. Creamos el token de autenticación para el contexto de seguridad
-                            UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                        if (jwtService.isTokenValid(token, userDetails)) {
+                            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                                     userDetails, null, userDetails.getAuthorities());
-
-                            // 4. Lo establecemos en el contexto de seguridad de Spring
-                            SecurityContextHolder.getContext().setAuthentication(auth);
-
-                            // 5. Mantenemos la lógica para identificar al usuario por su ID para los mensajes
-                            CustomUserDetails customUserDetails = (CustomUserDetails) userDetails;
-                            Long userId = customUserDetails.getUser().getId();
-                            final Principal userPrincipal = () -> userId.toString();
-                            accessor.setUser(userPrincipal);
-
-                            // --- FIN DE LA CORRECCIÓN ---
+                            // Establecer en el contexto de seguridad (buena práctica)
+                            SecurityContextHolder.getContext().setAuthentication(authentication);
+                            // --- CLAVE: Asociar la Authentication completa a la sesión STOMP ---
+                            accessor.setUser(authentication);
+                            // Spring usará authentication.getName() (username) para registrar la sesión internamente
+                            System.out.println("WebSocket CONNECT - Authentication asociada a STOMP para: " + authentication.getName());
                         }
                     }
                 } catch (Exception ex) {
-                    // Log y no autenticar
+                    System.err.println("Error autenticando token WebSocket: " + ex.getMessage());
                 }
+            } else {
+                System.err.println("WebSocket CONNECT - Cabecera Authorization ausente o inválida.");
             }
         }
         return message;

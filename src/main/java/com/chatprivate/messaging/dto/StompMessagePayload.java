@@ -37,7 +37,7 @@ public class StompMessagePayload {
         this.senderId = senderId;
     }
 
-    public Map<Long, String> getEncryptedKeys() {
+    public Map<String, String> getEncryptedKeys() {
         return encryptedKeys;
     }
 
