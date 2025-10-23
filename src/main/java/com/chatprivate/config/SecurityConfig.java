@@ -81,12 +81,30 @@ public class    SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Permitimos que el frontend de Flutter (corriendo en cualquier puerto) se conecte
-        configuration.setAllowedOrigins(Arrays.asList("*"));
-        configuration.setAllowedMethods(Arrays.asList("GET","POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        // --- CONFIGURACIÓN MÁS EXPLÍCITA ---
+        // Obtén el puerto exacto desde la salida de `flutter run -d edge` (ej. :52803)
+        // y añádelo aquí junto con 127.0.0.1
+        configuration.setAllowedOrigins(Arrays.asList(
+                "http://localhost:52803", // Reemplaza 52803 por tu puerto real
+                "http://127.0.0.1:52803" // Reemplaza 52803 por tu puerto real
+                // Puedes añadir más orígenes si es necesario
+        ));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        // Cabeceras comunes + Authorization
+        configuration.setAllowedHeaders(Arrays.asList(
+                "Authorization", "Content-Type", "X-Requested-With",
+                "accept", "Origin", "Access-Control-Request-Method",
+                "Access-Control-Request-Headers"
+        ));
+        // Permitir credenciales (importante si usas cookies o auth headers)
+        configuration.setAllowCredentials(true);
+        // Exponer cabeceras si es necesario (normalmente no para GET/POST simples)
+        // configuration.setExposedHeaders(Arrays.asList("..."));
+        // --- FIN CONFIGURACIÓN EXPLÍCITA ---
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
+        source.registerCorsConfiguration("/**", configuration); // Aplicar a todas las rutas
         return source;
     }
 }
+
