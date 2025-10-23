@@ -16,7 +16,7 @@ import org.springframework.messaging.simp.user.SimpUserRegistry;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList; // Importación necesaria
+import java.util.ArrayList; // Asegúrate que esta importación esté
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -45,7 +45,7 @@ public class MessageService {
     }
 
     @Transactional
-    // El parámetro debe ser Map<String, String> porque viene de JSON/DTO
+    // --- CORRECCIÓN 1: El parámetro DEBE ser Map<String, String> ---
     public void sendAndStoreMessage(Long senderId, Long conversationId, String ciphertext, Map<String, String> encryptedKeys) {
         // 1. Guardar mensaje principal
         Conversation conv = new Conversation();
@@ -61,9 +61,13 @@ public class MessageService {
             System.err.println("Error: encryptedKeys map está vacío o nulo para convId: " + conversationId);
             return;
         }
+
+        // --- CORRECCIÓN 2: .map(Long::parseLong) AHORA ES CORRECTO ---
+        // porque encryptedKeys.keySet() devuelve Set<String>
         List<Long> recipientIds = encryptedKeys.keySet().stream()
                 .map(Long::parseLong) // Convertir claves String a Long
                 .collect(Collectors.toList());
+        // --- FIN CORRECCIÓN 2 ---
 
         // 3. Obtener usernames
         Map<Long, String> userIdToUsernameMap = userRepository.findAllById(recipientIds).stream()
@@ -88,12 +92,8 @@ public class MessageService {
                 payload.setConversationId(conversationId);
                 payload.setCiphertext(ciphertext);
                 payload.setSenderId(senderId);
-
-                // --- CORRECCIÓN AQUÍ ---
-                // El DTO espera Map<String, String>, así que la clave debe ser String
+                // El DTO espera Map<String, String>
                 payload.setEncryptedKeys(Map.of(recipientId.toString(), encryptedKeyForRecipient));
-                // --- FIN CORRECCIÓN ---
-
 
                 // VERIFICACIÓN CON SimpUserRegistry
                 SimpUser user = simpUserRegistry.getUser(recipientUsername);
