@@ -6,16 +6,21 @@ import com.chatprivate.messaging.model.Message;
 import com.chatprivate.messaging.model.MessageKey;
 import com.chatprivate.messaging.repository.MessageKeyRepository;
 import com.chatprivate.messaging.repository.MessageRepository;
-import com.chatprivate.user.User; // Importar User
-import com.chatprivate.user.UserRepository; // Importar UserRepository
+import com.chatprivate.user.User;
+import com.chatprivate.user.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.user.SimpUser;
+import org.springframework.messaging.simp.user.SimpUserRegistry;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List; // Importar List
+import java.util.ArrayList; // Importación necesaria
+import java.util.List;
 import java.util.Map;
-import java.util.Optional; // Importar Optional
-import java.util.stream.Collectors; // Importar Collectors
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class MessageService {
@@ -23,22 +28,26 @@ public class MessageService {
     private final MessageRepository messageRepository;
     private final MessageKeyRepository messageKeyRepository;
     private final SimpMessagingTemplate simpMessagingTemplate;
-    private final UserRepository userRepository; // Añadir UserRepository
+    private final UserRepository userRepository;
+    private final SimpUserRegistry simpUserRegistry;
 
+    @Autowired
     public MessageService(MessageRepository messageRepository,
                           MessageKeyRepository messageKeyRepository,
                           SimpMessagingTemplate simpMessagingTemplate,
-                          UserRepository userRepository) { // Añadir al constructor
+                          UserRepository userRepository,
+                          @Lazy SimpUserRegistry simpUserRegistry) {
         this.messageRepository = messageRepository;
         this.messageKeyRepository = messageKeyRepository;
         this.simpMessagingTemplate = simpMessagingTemplate;
-        this.userRepository = userRepository; // Asignar
+        this.userRepository = userRepository;
+        this.simpUserRegistry = simpUserRegistry;
     }
 
     @Transactional
-    // Asegurarse que el Map use String como clave, ya que JSON lo hace
-    public void sendAndStoreMessage(Long senderId, Long conversationId, String ciphertext, Map<Long, String> encryptedKeys) {
-        // 1. Guardar el mensaje principal
+    // El parámetro debe ser Map<String, String> porque viene de JSON/DTO
+    public void sendAndStoreMessage(Long senderId, Long conversationId, String ciphertext, Map<String, String> encryptedKeys) {
+        // 1. Guardar mensaje principal
         Conversation conv = new Conversation();
         conv.setId(conversationId);
         Message message = new Message();
@@ -47,50 +56,60 @@ public class MessageService {
         message.setCiphertext(ciphertext);
         message = messageRepository.save(message);
 
-        // 2. Obtener los IDs de los destinatarios (las claves del mapa)
+        // 2. Obtener IDs (las claves String se convierten a Long)
         if (encryptedKeys == null || encryptedKeys.isEmpty()) {
             System.err.println("Error: encryptedKeys map está vacío o nulo para convId: " + conversationId);
-            return; // No se puede continuar sin destinatarios
+            return;
         }
-
         List<Long> recipientIds = encryptedKeys.keySet().stream()
-                .map(Long::parseLong) // Convertir las claves String de nuevo a Long
+                .map(Long::parseLong) // Convertir claves String a Long
                 .collect(Collectors.toList());
 
-        // 3. Buscar los objetos User para obtener sus usernames (más eficiente buscar todos juntos)
+        // 3. Obtener usernames
         Map<Long, String> userIdToUsernameMap = userRepository.findAllById(recipientIds).stream()
                 .collect(Collectors.toMap(User::getId, User::getUsername));
 
-        // 4. Iterar y guardar MessageKey + ENVIAR usando USERNAME
+        // 4. Iterar, guardar MessageKey y ENVIAR
         for (Long recipientId : recipientIds) {
-            String encryptedKeyForRecipient = encryptedKeys.get(recipientId.toString()); // Obtener valor usando ID como String
+            // Usar clave String para buscar en el mapa original
+            String encryptedKeyForRecipient = encryptedKeys.get(recipientId.toString());
             String recipientUsername = userIdToUsernameMap.get(recipientId);
 
-            // Si encontramos el username y la clave cifrada...
             if (recipientUsername != null && encryptedKeyForRecipient != null) {
-                // Guardar la MessageKey (como antes)
+                // Guardar MessageKey
                 MessageKey mk = new MessageKey();
                 mk.setMessage(message);
                 mk.setRecipientId(recipientId);
                 mk.setEncryptedKey(encryptedKeyForRecipient);
                 messageKeyRepository.save(mk);
 
-                // Crear el payload
+                // Crear payload
                 StompMessagePayload payload = new StompMessagePayload();
                 payload.setConversationId(conversationId);
                 payload.setCiphertext(ciphertext);
                 payload.setSenderId(senderId);
-                // Enviamos solo la clave para este destinatario específico
-                payload.setEncryptedKeys(Map.of(recipientId, encryptedKeyForRecipient));
-                // ¡CAMBIO CLAVE! Enviar usando el USERNAME del destinatario
-                simpMessagingTemplate.convertAndSendToUser(recipientUsername, "/queue/messages", payload);
 
-                // --- PUNTO Y COMA AÑADIDO AQUÍ ---
-                System.out.println("Mensaje reenviado a usuario: " + recipientUsername + " (ID: " + recipientId + ")");
-                // --- FIN PUNTO Y COMA ---
+                // --- CORRECCIÓN AQUÍ ---
+                // El DTO espera Map<String, String>, así que la clave debe ser String
+                payload.setEncryptedKeys(Map.of(recipientId.toString(), encryptedKeyForRecipient));
+                // --- FIN CORRECCIÓN ---
+
+
+                // VERIFICACIÓN CON SimpUserRegistry
+                SimpUser user = simpUserRegistry.getUser(recipientUsername);
+                if (user != null && user.hasSessions()) {
+                    System.out.println("Usuario '" + recipientUsername + "' encontrado en SimpUserRegistry con " + user.getSessions().size() + " sesión(es). Intentando enviar...");
+                    simpMessagingTemplate.convertAndSendToUser(recipientUsername, "/queue/messages", payload);
+                    System.out.println("Mensaje reenviado a usuario: " + recipientUsername + " (ID: " + recipientId + ")");
+                } else {
+                    System.err.println("Error Crítico: Usuario '" + recipientUsername + "' NO encontrado en SimpUserRegistry o sin sesiones activas. No se puede enviar mensaje.");
+                    if (user != null) {
+                        System.err.println("Usuario '" + recipientUsername + "' encontrado pero user.hasSessions() es false.");
+                    }
+                }
 
             } else {
-                System.err.println("No se pudo encontrar username para ID: " + recipientId + " o falta la clave cifrada. No se envió mensaje.");
+                System.err.println("No se pudo encontrar username para ID: " + recipientId + " o falta la clave cifrada.");
             }
         }
     }

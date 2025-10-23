@@ -7,9 +7,10 @@ public class StompMessagePayload {
     private Long conversationId;
     private String ciphertext;
     private Long senderId;
-    private Map<Long, String> encryptedKeys;
+    // --- CORRECCIÓN ---
+    // JSON siempre tiene claves String. Cambiamos Long a String.
+    private Map<String, String> encryptedKeys;
 
-    // Constructor vacío
     public StompMessagePayload() {}
 
     // Getters y setters
@@ -37,11 +38,13 @@ public class StompMessagePayload {
         this.senderId = senderId;
     }
 
+    // --- CORRECCIÓN ---
     public Map<String, String> getEncryptedKeys() {
         return encryptedKeys;
     }
 
-    public void setEncryptedKeys(Map<Long, String> encryptedKeys) {
+    // --- CORRECCIÓN ---
+    public void setEncryptedKeys(Map<String, String> encryptedKeys) {
         this.encryptedKeys = encryptedKeys;
     }
 }
