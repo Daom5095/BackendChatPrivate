@@ -4,6 +4,7 @@ import com.chatprivate.auth.AuthResponse;
 import com.chatprivate.auth.LoginRequest;
 import com.chatprivate.auth.RegisterRequest;
 import com.chatprivate.security.JwtService;
+import lombok.RequiredArgsConstructor; // Importar
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -13,28 +14,20 @@ import com.chatprivate.messaging.repository.UserPublicKeyRepository;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor // Genera el constructor
 public class UserService {
 
+    // Convertidos a 'final'
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final UserPublicKeyRepository userPublicKeyRepository;
 
-    // Constructor manual
-    public UserService(UserRepository userRepository,
-                       PasswordEncoder passwordEncoder,
-                       JwtService jwtService,
-                       UserPublicKeyRepository userPublicKeyRepository) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
-        this.userPublicKeyRepository = userPublicKeyRepository;
-    }
+    // El constructor manual se elimina (Lombok lo crea)
 
     @Transactional
-
     public AuthResponse register(RegisterRequest request) {
-        // construimos el User manualmente con nuestro builder manual
+        // ... (el resto del método sigue igual)
         User user = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
@@ -57,6 +50,7 @@ public class UserService {
     }
 
     public AuthResponse login(LoginRequest request) {
+        // ... (el resto del método sigue igual)
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new UsernameNotFoundException("No existe usuario"));
 

@@ -2,19 +2,19 @@ package com.chatprivate.auth;
 
 
 import com.chatprivate.user.UserService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor; // Importar
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-
+@RequiredArgsConstructor // Genera un constructor con todos los campos 'final'
 public class AuthController {
 
+    // Se pone 'final' para que Lombok lo detecte
+    private final UserService userService;
 
-    @Autowired
-    private UserService userService;
+    // El constructor manual se elimina (Lombok lo crea)
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {

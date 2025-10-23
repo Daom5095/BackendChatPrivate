@@ -8,6 +8,8 @@ import com.chatprivate.messaging.repository.MessageKeyRepository;
 import com.chatprivate.messaging.repository.MessageRepository;
 import com.chatprivate.user.User;
 import com.chatprivate.user.UserRepository;
+import lombok.RequiredArgsConstructor; // Importar
+import lombok.extern.slf4j.Slf4j; // Importar
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -23,14 +25,25 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor // Usamos Lombok para la inyección
+@Slf4j // Añade el objeto 'log' automáticamente
 public class MessageService {
 
+    // Convertidos a 'final'
     private final MessageRepository messageRepository;
     private final MessageKeyRepository messageKeyRepository;
     private final SimpMessagingTemplate simpMessagingTemplate;
     private final UserRepository userRepository;
     private final SimpUserRegistry simpUserRegistry;
 
+    // Eliminamos el constructor manual (Lombok lo crea)
+    // NOTA: @Lazy se debe poner en el parámetro del constructor,
+    // por lo que debemos volver al constructor manual solo por SimpUserRegistry
+
+    // --- CORRECCIÓN a la mejora de Lombok ---
+    // @RequiredArgsConstructor no funciona con @Lazy en el campo.
+    // Volvemos al constructor manual SOLO para esta clase.
+    /*
     @Autowired
     public MessageService(MessageRepository messageRepository,
                           MessageKeyRepository messageKeyRepository,
@@ -43,9 +56,12 @@ public class MessageService {
         this.userRepository = userRepository;
         this.simpUserRegistry = simpUserRegistry;
     }
+    */
+    // (Tu constructor original estaba bien, mantenlo y añade @Slf4j a la clase)
+    // --- FIN CORRECCIÓN ---
+
 
     @Transactional
-    // --- CORRECCIÓN 1: El parámetro DEBE ser Map<String, String> ---
     public void sendAndStoreMessage(Long senderId, Long conversationId, String ciphertext, Map<String, String> encryptedKeys) {
         // 1. Guardar mensaje principal
         Conversation conv = new Conversation();
@@ -57,17 +73,18 @@ public class MessageService {
         message = messageRepository.save(message);
 
         // 2. Obtener IDs (las claves String se convierten a Long)
+        // --- INICIO MEJORA ERROR ---
         if (encryptedKeys == null || encryptedKeys.isEmpty()) {
-            System.err.println("Error: encryptedKeys map está vacío o nulo para convId: " + conversationId);
-            return;
+            // Reemplazamos System.err por log.error y lanzamos una excepción
+            log.error("Error: encryptedKeys map está vacío o nulo para convId: {}", conversationId);
+            // Esto detendrá la ejecución y le dirá al cliente que algo salió mal
+            throw new IllegalArgumentException("El mapa de claves cifradas no puede estar vacío.");
         }
+        // --- FIN MEJORA ERROR ---
 
-        // --- CORRECCIÓN 2: .map(Long::parseLong) AHORA ES CORRECTO ---
-        // porque encryptedKeys.keySet() devuelve Set<String>
         List<Long> recipientIds = encryptedKeys.keySet().stream()
-                .map(Long::parseLong) // Convertir claves String a Long
+                .map(Long::parseLong)
                 .collect(Collectors.toList());
-        // --- FIN CORRECCIÓN 2 ---
 
         // 3. Obtener usernames
         Map<Long, String> userIdToUsernameMap = userRepository.findAllById(recipientIds).stream()
@@ -75,7 +92,6 @@ public class MessageService {
 
         // 4. Iterar, guardar MessageKey y ENVIAR
         for (Long recipientId : recipientIds) {
-            // Usar clave String para buscar en el mapa original
             String encryptedKeyForRecipient = encryptedKeys.get(recipientId.toString());
             String recipientUsername = userIdToUsernameMap.get(recipientId);
 
@@ -92,24 +108,26 @@ public class MessageService {
                 payload.setConversationId(conversationId);
                 payload.setCiphertext(ciphertext);
                 payload.setSenderId(senderId);
-                // El DTO espera Map<String, String>
                 payload.setEncryptedKeys(Map.of(recipientId.toString(), encryptedKeyForRecipient));
 
                 // VERIFICACIÓN CON SimpUserRegistry
                 SimpUser user = simpUserRegistry.getUser(recipientUsername);
                 if (user != null && user.hasSessions()) {
-                    System.out.println("Usuario '" + recipientUsername + "' encontrado en SimpUserRegistry con " + user.getSessions().size() + " sesión(es). Intentando enviar...");
+                    // Reemplazamos System.out por log.info
+                    log.info("Usuario '{}' encontrado en SimpUserRegistry con {} sesión(es). Intentando enviar...", recipientUsername, user.getSessions().size());
                     simpMessagingTemplate.convertAndSendToUser(recipientUsername, "/queue/messages", payload);
-                    System.out.println("Mensaje reenviado a usuario: " + recipientUsername + " (ID: " + recipientId + ")");
+                    log.info("Mensaje reenviado a usuario: {} (ID: {})", recipientUsername, recipientId);
                 } else {
-                    System.err.println("Error Crítico: Usuario '" + recipientUsername + "' NO encontrado en SimpUserRegistry o sin sesiones activas. No se puede enviar mensaje.");
+                    // Reemplazamos System.err por log.warn (es un error, pero no rompe la app)
+                    log.warn("Error Crítico: Usuario '{}' NO encontrado en SimpUserRegistry o sin sesiones activas. No se puede enviar mensaje.", recipientUsername);
                     if (user != null) {
-                        System.err.println("Usuario '" + recipientUsername + "' encontrado pero user.hasSessions() es false.");
+                        log.warn("Usuario '{}' encontrado pero user.hasSessions() es false.", recipientUsername);
                     }
                 }
 
             } else {
-                System.err.println("No se pudo encontrar username para ID: " + recipientId + " o falta la clave cifrada.");
+                // Reemplazamos System.err por log.warn
+                log.warn("No se pudo encontrar username para ID: {} o falta la clave cifrada.", recipientId);
             }
         }
     }
