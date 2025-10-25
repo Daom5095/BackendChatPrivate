@@ -2,27 +2,32 @@ package com.chatprivate.auth;
 
 
 import com.chatprivate.user.UserService;
-import lombok.RequiredArgsConstructor; // Importar
+import jakarta.validation.Valid; // ¡Importar!
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-@RequiredArgsConstructor // Genera un constructor con todos los campos 'final'
+@RequiredArgsConstructor
 public class AuthController {
 
-    // Se pone 'final' para que Lombok lo detecte
     private final UserService userService;
 
-    // El constructor manual se elimina (Lombok lo crea)
-
+    /**
+     * Añado @Valid aquí. Spring ahora validará el objeto RegisterRequest
+     * ANTES de llamar a mi método.
+     */
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.ok(userService.register(request));
     }
 
+    /**
+     * Añado @Valid aquí también.
+     */
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(userService.login(request));
     }
 }

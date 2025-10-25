@@ -1,16 +1,25 @@
 package com.chatprivate.messaging.dto;
 
+import jakarta.validation.constraints.NotBlank; // Importar
+import jakarta.validation.constraints.NotEmpty; // Importar
+import jakarta.validation.constraints.NotNull; // Importar
 import java.util.Map;
 
 public class SendMessageRequest {
 
+    @NotNull(message = "El ID de la conversación es obligatorio")
     private Long conversationId;
+
+    @NotBlank(message = "El texto cifrado (ciphertext) no puede estar vacío")
     private String ciphertext;
-    // --- CORRECCIÓN ---
-    // JSON siempre tiene claves String. Cambiamos Long a String.
+
+    // El mapa de claves no puede ser nulo ni estar vacío
+    @NotEmpty(message = "El mapa de claves cifradas (encryptedKeys) es obligatorio y no puede estar vacío")
     private Map<String, String> encryptedKeys;
 
     public SendMessageRequest() {}
+
+    // ... (getters y setters sin cambios) ...
 
     public Long getConversationId() {
         return conversationId;
@@ -28,12 +37,10 @@ public class SendMessageRequest {
         this.ciphertext = ciphertext;
     }
 
-    // --- CORRECCIÓN ---
     public Map<String, String> getEncryptedKeys() {
         return encryptedKeys;
     }
 
-    // --- CORRECCIÓN ---
     public void setEncryptedKeys(Map<String, String> encryptedKeys) {
         this.encryptedKeys = encryptedKeys;
     }

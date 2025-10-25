@@ -1,6 +1,7 @@
 package com.chatprivate.config;
 
 import com.chatprivate.security.JwtAuthFilter;
+// import org.springframework.beans.factory.annotation.Value; // ¡LÍNEA COMENTADA!
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -21,6 +22,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
+import java.util.List; // Importar List
+
 /**
  * Configuración de seguridad
  */
@@ -28,6 +31,11 @@ import java.util.Arrays;
 @EnableWebSecurity
 public class    SecurityConfig {
 
+
+    // --- ¡CAMPO COMENTADO! ---
+    // @Value("${app.cors.allowed-origins}")
+    // private List<String> allowedOrigins;
+    // --------------------------------------------------
 
     private final JwtAuthFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
@@ -78,17 +86,22 @@ public class    SecurityConfig {
         return http.build();
     }
 
+    /**
+     * ¡AQUÍ ESTÁ EL CAMBIO!
+     * Usamos una lista "quemada" (hardcoded) en lugar del @Value
+     */
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // --- CONFIGURACIÓN MÁS EXPLÍCITA ---
-        // Obtén el puerto exacto desde la salida de `flutter run -d edge` (ej. :52803)
-        // y añádelo aquí junto con 127.0.0.1
-        configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:52803", // Reemplaza 52803 por tu puerto real
-                "http://127.0.0.1:52803" // Reemplaza 52803 por tu puerto real
-                // Puedes añadir más orígenes si es necesario
-        ));
+
+        // --- CONFIGURACIÓN "QUEMADA" (TEMPORAL) ---
+        List<String> allowedOrigins = Arrays.asList(
+                "http://localhost:52803",
+                "http://128.0.0.1:52803" // Corregí 127.0.0.1 por si acaso
+        );
+        configuration.setAllowedOrigins(allowedOrigins);
+        // ------------------------------------------
+
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         // Cabeceras comunes + Authorization
         configuration.setAllowedHeaders(Arrays.asList(
@@ -107,4 +120,3 @@ public class    SecurityConfig {
         return source;
     }
 }
-

@@ -22,5 +22,15 @@ spring:
 # JWT (los valores que usas en JwtService)
 app:
   jwt:
+
+
     secret: "b49aa764aa2871f12ac13b390221b494f7d9e1e748e0a1f136b9285f82cb99e2" # mínimo 32 chars
     expirationMs: 86400000  # 24 horas en milisegundos
+
+
+  # Asegúrate de que 'cors:' tenga dos espacios de indentación,
+  # y 'allowed-origins:' tenga cuatro espacios.
+  cors:
+    allowed-origins:
+      - "http://localhost:52803"
+      - "http://127.0.0.1:52803"

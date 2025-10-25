@@ -1,21 +1,39 @@
 package com.chatprivate.auth;
 
+import jakarta.validation.constraints.Email; // Importar
+import jakarta.validation.constraints.NotBlank; // Importar
+import jakarta.validation.constraints.Size; // Importar
 import lombok.Data;
-import lombok.NoArgsConstructor; // Es bueno añadirlo para flexibilidad
+import lombok.NoArgsConstructor;
 
-@Data // @Data incluye @Getter, @Setter, @ToString, @EqualsAndHashCode, @RequiredArgsConstructor
-@NoArgsConstructor // Añadir constructor sin argumentos
+@Data
+@NoArgsConstructor
 public class RegisterRequest {
+
+    // Le digo que el username no puede ser nulo, ni vacío, ni solo espacios
+    @NotBlank(message = "El nombre de usuario es obligatorio")
+    @Size(min = 3, max = 20, message = "El nombre de usuario debe tener entre 3 y 20 caracteres")
     private String username;
+
+    // Verifico que sea un email válido
+    @NotBlank(message = "El email es obligatorio")
+    @Email(message = "El formato del email no es válido")
     private String email;
-    private String password; // Contraseña en texto plano enviada por el frontend
-    private String publicKey; // Clave pública RSA del usuario (PEM)
 
-    // --- Campos añadidos para recuperación de clave ---
-    private String kekSalt; // Salt usado para derivar KEK (Base64)
-    private String encryptedPrivateKey; // Clave privada RSA cifrada con KEK (Base64)
-    private String kekIv; // IV usado con KEK (Base64)
-    // -------------------------------------------------
+    // Verifico la contraseña
+    @NotBlank(message = "La contraseña es obligatoria")
+    @Size(min = 8, message = "La contraseña debe tener al menos 8 caracteres")
+    private String password;
 
+    // Estos pueden ser nulos si la lógica lo permite,
+    // pero si se envían, no deben estar vacíos.
+    @NotBlank(message = "La clave pública es obligatoria")
+    private String publicKey;
 
+    @NotBlank(message = "kekSalt es obligatorio")
+    private String kekSalt;
+    @NotBlank(message = "encryptedPrivateKey es obligatoria")
+    private String encryptedPrivateKey;
+    @NotBlank(message = "kekIv es obligatorio")
+    private String kekIv;
 }
