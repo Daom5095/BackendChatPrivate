@@ -1,17 +1,12 @@
 package com.chatprivate.messaging.controller;
 
-import com.chatprivate.messaging.dto.SendMessageRequest;
-import com.chatprivate.messaging.model.UserPublicKey;
 import com.chatprivate.messaging.repository.UserPublicKeyRepository;
 import com.chatprivate.messaging.service.MessageService;
 import com.chatprivate.user.UserRepository;
-import com.chatprivate.user.UserService; // ¡IMPORTAR!
-import jakarta.validation.Valid;
+import com.chatprivate.user.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UsernameNotFoundException; // ¡IMPORTAR!
 import org.springframework.web.bind.annotation.*;
-import com.chatprivate.user.User;
 
 @RestController
 @RequestMapping("/api/messaging")
