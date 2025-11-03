@@ -129,4 +129,22 @@ public class UserService {
         log.info("Login exitoso para usuario: {}", request.getUsername());
         return response;
     }
+
+    // --- ¡NUEVO MÉTODO MOVIDO DESDE EL CONTROLADOR! ---
+    @Transactional
+    public void uploadPublicKey(String username, String publicKeyPem) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
+
+        // Busca si ya existe una clave para actualizarla, o crea una nueva
+        UserPublicKey upk = userPublicKeyRepository.findByUserId(user.getId())
+                .orElse(new UserPublicKey()); // Crea una nueva si no existe
+
+        upk.setUserId(user.getId());
+        upk.setPublicKeyPem(publicKeyPem);
+        // 'updatedAt' se actualiza automáticamente en la entidad
+
+        userPublicKeyRepository.save(upk);
+        log.info("Clave pública (re)guardada para usuario ID: {}", user.getId());
+    }
 }

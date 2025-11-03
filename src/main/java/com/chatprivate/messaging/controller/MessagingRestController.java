@@ -5,9 +5,11 @@ import com.chatprivate.messaging.model.UserPublicKey;
 import com.chatprivate.messaging.repository.UserPublicKeyRepository;
 import com.chatprivate.messaging.service.MessageService;
 import com.chatprivate.user.UserRepository;
-import jakarta.validation.Valid; // ¡Importar!
+import com.chatprivate.user.UserService; // ¡IMPORTAR!
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException; // ¡IMPORTAR!
 import org.springframework.web.bind.annotation.*;
 import com.chatprivate.user.User;
 
@@ -15,35 +17,34 @@ import com.chatprivate.user.User;
 @RequestMapping("/api/messaging")
 public class MessagingRestController {
 
-    // ... (dependencias y constructor sin cambios) ...
     private final UserPublicKeyRepository userPublicKeyRepository;
-    private final UserRepository userRepository;
+    private final UserRepository userRepository; // Eliminable si no se usa más
     private final MessageService messageService;
+    private final UserService userService; // ¡AÑADIR!
+
     public MessagingRestController(UserPublicKeyRepository userPublicKeyRepository,
                                    MessageService messageService,
-                                   UserRepository userRepository) {
+                                   UserRepository userRepository,
+                                   UserService userService) { // ¡AÑADIR!
         this.userPublicKeyRepository = userPublicKeyRepository;
         this.messageService = messageService;
         this.userRepository = userRepository;
+        this.userService = userService; // ¡AÑADIR!
     }
 
-    // ... (endpoint /public-key sin cambios) ...
+    // --- ENDPOINT REFACTORIZADO ---
     @PostMapping("/public-key")
     public ResponseEntity<?> uploadPublicKey(Authentication authentication,
                                              @RequestBody String publicKeyPem) {
-        // ... (lógica sin cambios) ...
-        String username = authentication.getName();
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        UserPublicKey upk = new UserPublicKey();
-        upk.setUserId(user.getId());
-        upk.setPublicKeyPem(publicKeyPem);
-        userPublicKeyRepository.save(upk);
+        // La lógica de buscar al usuario y guardar está ahora en el servicio
+        userService.uploadPublicKey(authentication.getName(), publicKeyPem);
         return ResponseEntity.ok().build();
     }
+
     @GetMapping("/public-key/{userId}")
     public ResponseEntity<?> getPublicKey(@PathVariable Long userId) {
-        // ... (lógica sin cambios) ...
+        // Esta lógica de solo lectura es simple y puede quedarse,
+        // aunque también podría moverse a un servicio si se vuelve más compleja.
         return userPublicKeyRepository.findById(userId)
                 .map(u -> ResponseEntity.ok(u.getPublicKeyPem()))
                 .orElse(ResponseEntity.notFound().build());
@@ -51,22 +52,24 @@ public class MessagingRestController {
 
 
     /**
-     * Añado @Valid aquí, para validar el SendMessageRequest.
+     * --- ¡ENDPOINT ELIMINADO! ---
+     * Este endpoint es redundante. El envío de mensajes debe hacerse
+     * a través del WebSocket (@MessageMapping("/chat.send") en StompChatController)
+     * para mantener una única vía de comunicación para el envío de chats.
      */
+    /*
     @PostMapping("/send")
     public ResponseEntity<?> sendMessage(Authentication authentication,
                                          @Valid @RequestBody SendMessageRequest req) {
         String senderUsername = authentication.getName();
         User user = userRepository.findByUsername(senderUsername)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         Long senderId = user.getId();
 
-        // Si req no es válido, esto lanzará MethodArgumentNotValidException
-        // y mi GlobalExceptionHandler lo atrapará.
         messageService.sendAndStoreMessage(senderId, req.getConversationId(),
                 req.getCiphertext(), req.getEncryptedKeys());
 
         return ResponseEntity.ok().build();
     }
-
+    */
 }
