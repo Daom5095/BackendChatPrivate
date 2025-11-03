@@ -28,3 +28,5 @@ app:
     allowed-origins:
       - "http://localhost:52803"
       - "http://127.0.0.1:52803"
+      - "http://localhost:55777"
+      - "http://127.0.0.1:55777"

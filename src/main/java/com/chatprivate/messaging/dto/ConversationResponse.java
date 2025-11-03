@@ -10,6 +10,10 @@ public class ConversationResponse {
     private Instant createdAt;
     private List<ParticipantDto> participants;
 
+    // --- CAMBIO: AÑADIDO ESTE CAMPO ---
+    private LastMessageDto lastMessage;
+    // --- FIN DEL CAMBIO ---
+
     public ConversationResponse() {}
 
     public Long getId() { return id; }
@@ -26,4 +30,9 @@ public class ConversationResponse {
 
     public List<ParticipantDto> getParticipants() { return participants; }
     public void setParticipants(List<ParticipantDto> participants) { this.participants = participants; }
+
+    // --- CAMBIO: AÑADIDO GETTER Y SETTER ---
+    public LastMessageDto getLastMessage() { return lastMessage; }
+    public void setLastMessage(LastMessageDto lastMessage) { this.lastMessage = lastMessage; }
+    // --- FIN DEL CAMBIO ---
 }
