@@ -13,21 +13,21 @@ import org.springframework.web.bind.annotation.*;
 public class MessagingRestController {
 
     private final UserPublicKeyRepository userPublicKeyRepository;
-    private final UserRepository userRepository; // Eliminable si no se usa más
+    private final UserRepository userRepository;
     private final MessageService messageService;
     private final UserService userService; // ¡AÑADIR!
 
     public MessagingRestController(UserPublicKeyRepository userPublicKeyRepository,
                                    MessageService messageService,
                                    UserRepository userRepository,
-                                   UserService userService) { // ¡AÑADIR!
+                                   UserService userService) {
         this.userPublicKeyRepository = userPublicKeyRepository;
         this.messageService = messageService;
         this.userRepository = userRepository;
-        this.userService = userService; // ¡AÑADIR!
+        this.userService = userService;
     }
 
-    // --- ENDPOINT REFACTORIZADO ---
+
     @PostMapping("/public-key")
     public ResponseEntity<?> uploadPublicKey(Authentication authentication,
                                              @RequestBody String publicKeyPem) {
@@ -45,26 +45,4 @@ public class MessagingRestController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-
-    /**
-     * --- ¡ENDPOINT ELIMINADO! ---
-     * Este endpoint es redundante. El envío de mensajes debe hacerse
-     * a través del WebSocket (@MessageMapping("/chat.send") en StompChatController)
-     * para mantener una única vía de comunicación para el envío de chats.
-     */
-    /*
-    @PostMapping("/send")
-    public ResponseEntity<?> sendMessage(Authentication authentication,
-                                         @Valid @RequestBody SendMessageRequest req) {
-        String senderUsername = authentication.getName();
-        User user = userRepository.findByUsername(senderUsername)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        Long senderId = user.getId();
-
-        messageService.sendAndStoreMessage(senderId, req.getConversationId(),
-                req.getCiphertext(), req.getEncryptedKeys());
-
-        return ResponseEntity.ok().build();
-    }
-    */
 }

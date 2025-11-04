@@ -1,6 +1,5 @@
 package com.chatprivate.auth;
 
-import com.chatprivate.user.User;
 import com.chatprivate.user.UserDto;
 import com.chatprivate.user.UserRepository;
 import org.springframework.http.ResponseEntity;
@@ -8,7 +7,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import com.chatprivate.user.CustomUserDetails; // Importar
+import com.chatprivate.user.CustomUserDetails;
 
 import java.util.List;
 import java.util.stream.Collectors;

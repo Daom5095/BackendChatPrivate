@@ -1,7 +1,6 @@
 package com.chatprivate.messaging.dto;
 
-import jakarta.validation.constraints.NotNull; // Importar
-
+import jakarta.validation.constraints.NotNull;
 public class AddParticipantRequest {
 
     @NotNull(message = "El ID del usuario (userId) a añadir es obligatorio")
@@ -11,7 +10,6 @@ public class AddParticipantRequest {
 
     public AddParticipantRequest() {}
 
-    // ... (getters y setters sin cambios) ...
 
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }

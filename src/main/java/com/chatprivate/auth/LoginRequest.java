@@ -1,6 +1,6 @@
 package com.chatprivate.auth;
 
-import jakarta.validation.constraints.NotBlank; // Importar
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;

@@ -19,7 +19,7 @@ public class SendMessageRequest {
 
     public SendMessageRequest() {}
 
-    // ... (getters y setters sin cambios) ...
+
 
     public Long getConversationId() {
         return conversationId;

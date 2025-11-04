@@ -20,7 +20,6 @@ public class ErrorResponseDto {
         this.path = path;
     }
 
-    // Getters y Setters (necesarios para la serialización JSON)
 
     public Instant getTimestamp() {
         return timestamp;

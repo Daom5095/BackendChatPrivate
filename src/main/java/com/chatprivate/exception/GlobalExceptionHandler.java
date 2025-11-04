@@ -17,14 +17,19 @@ import java.util.stream.Collectors;
  * Mi "Controlador de Errores" global.
  * La anotación @RestControllerAdvice le dice a Spring: "Si cualquier
  * @RestController lanza una excepción, búsca un manejador aquí primero".
+ * Esto centraliza todo mi manejo de errores de la API REST.
  */
 @RestControllerAdvice
-@Slf4j // Uso un logger para registrar los errores internos
+@Slf4j // Uso un logger (SLF4J) para registrar los errores internos
 public class GlobalExceptionHandler {
 
     /**
-     * Maneja errores de validación (Punto 2).
+     * Maneja errores de validación (ej. campos @NotBlank, @Email en DTOs).
      * Se activa cuando un DTO anotado con @Valid falla la validación.
+     *
+     * @param ex      La excepción de validación.
+     * @param request La petición HTTP que causó el error.
+     * @return ResponseEntity con estado 400 (Bad Request) y los mensajes de error.
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponseDto> handleValidationExceptions(MethodArgumentNotValidException ex, HttpServletRequest request) {
@@ -44,7 +49,11 @@ public class GlobalExceptionHandler {
 
     /**
      * Maneja errores de argumentos ilegales (ej. "El mapa de claves no puede estar vacío").
-     * Devuelve un 400 Bad Request.
+     * Esta es una excepción que lanzo manualmente desde mis servicios si la lógica de negocio no se cumple.
+     *
+     * @param ex      La excepción.
+     * @param request La petición.
+     * @return ResponseEntity con estado 400 (Bad Request).
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponseDto> handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request) {
@@ -58,8 +67,11 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Maneja credenciales incorrectas en el login.
-     * Devuelve un 401 Unauthorized.
+     * Maneja credenciales incorrectas en el login (fallo de Spring Security).
+     *
+     * @param ex      La excepción.
+     * @param request La petición.
+     * @return ResponseEntity con estado 401 (Unauthorized).
      */
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponseDto> handleBadCredentialsException(BadCredentialsException ex, HttpServletRequest request) {
@@ -74,7 +86,10 @@ public class GlobalExceptionHandler {
 
     /**
      * Maneja el caso en que un usuario no se encuentra (login o carga de seguridad).
-     * Devuelve un 404 Not Found.
+     *
+     * @param ex      La excepción.
+     * @param request La petición.
+     * @return ResponseEntity con estado 404 (Not Found).
      */
     @ExceptionHandler(UsernameNotFoundException.class)
     public ResponseEntity<ErrorResponseDto> handleUsernameNotFoundException(UsernameNotFoundException ex, HttpServletRequest request) {
@@ -89,7 +104,10 @@ public class GlobalExceptionHandler {
 
     /**
      * Maneja intentos de acceso denegado (ej. no-owner intentando borrar a alguien).
-     * Devuelve un 403 Forbidden.
+     *
+     * @param ex      La excepción.
+     * @param request La petición.
+     * @return ResponseEntity con estado 403 (Forbidden).
      */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponseDto> handleAccessDeniedException(AccessDeniedException ex, HttpServletRequest request) {
@@ -106,7 +124,10 @@ public class GlobalExceptionHandler {
     /**
      * Mi "catch-all". Si ocurre cualquier otra excepción que no manejé
      * (ej. NullPointerException), esto la atrapará.
-     * Devuelve un 500 Internal Server Error.
+     *
+     * @param ex      La excepción inesperada.
+     * @param request La petición.
+     * @return ResponseEntity con estado 500 (Internal Server Error).
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDto> handleGlobalException(Exception ex, HttpServletRequest request) {

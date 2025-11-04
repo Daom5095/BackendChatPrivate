@@ -8,11 +8,10 @@ import lombok.Setter;
 // para tener más control y evitar problemas potenciales con constructores generados
 @Getter
 @Setter
-@NoArgsConstructor // Lombok genera constructor vacío
+@NoArgsConstructor
 public class AuthResponse {
 
     private String token;
-    // --- Campos añadidos para recuperación de clave ---
     private String kekSalt;
     private String encryptedPrivateKey;
     private String kekIv;
@@ -26,10 +25,6 @@ public class AuthResponse {
         this.kekIv = kekIv;
     }
 
-    // Getters y Setters son generados por Lombok (@Getter, @Setter)
-    // Eliminamos los manuales
-
-    // --- Builder manual (Actualizado) ---
     public static Builder builder() { return new Builder(); }
 
     public static class Builder {
@@ -47,5 +42,5 @@ public class AuthResponse {
             // Llama al constructor actualizado
             return new AuthResponse(token, kekSalt, encryptedPrivateKey, kekIv);
         }
-    } // Fin clase Builder
-} // Fin clase AuthResponse
+    }
+}

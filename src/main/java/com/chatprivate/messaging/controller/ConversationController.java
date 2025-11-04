@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UsernameNotFoundException; // ¡IMPORTAR!
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -40,12 +40,10 @@ public class ConversationController {
         return ResponseEntity.ok(conversationService.createConversation(req, creatorId));
     }
 
-    // ... (endpoint GET / sin cambios) ...
     @GetMapping
     public ResponseEntity<List<ConversationResponse>> getUserConversations(Authentication authentication) {
         String username = authentication.getName();
         User user = userRepository.findByUsername(username)
-                // ¡CAMBIO!
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
         Long userId = user.getId();
         return ResponseEntity.ok(conversationService.getUserConversations(userId));
@@ -70,14 +68,12 @@ public class ConversationController {
         return ResponseEntity.ok().build();
     }
 
-    // ... (DELETE /participants y GET /participants sin cambios) ...
     @DeleteMapping("/{id}/participants/{userId}")
     public ResponseEntity<?> removeParticipant(Authentication authentication,
                                                @PathVariable("id") Long conversationId,
                                                @PathVariable("userId") Long userId) {
         String username = authentication.getName();
         User user = userRepository.findByUsername(username)
-                // ¡CAMBIO!
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
         Long requesterId = user.getId();
         conversationService.removeParticipant(conversationId, requesterId, userId);
@@ -90,7 +86,6 @@ public class ConversationController {
     }
 
 
-    // ... (GET /messages sin cambios) ...
     @GetMapping("/{id}/messages")
     public ResponseEntity<List<MessageHistoryDto>> getMessageHistory(
             Authentication authentication,
