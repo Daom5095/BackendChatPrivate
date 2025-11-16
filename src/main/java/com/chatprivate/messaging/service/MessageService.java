@@ -6,151 +6,203 @@ import com.chatprivate.messaging.model.Message;
 import com.chatprivate.messaging.model.MessageKey;
 import com.chatprivate.messaging.repository.MessageKeyRepository;
 import com.chatprivate.messaging.repository.MessageRepository;
+import com.chatprivate.security.PermissionService;
 import com.chatprivate.user.User;
 import com.chatprivate.user.UserRepository;
-// import lombok.RequiredArgsConstructor; // ¡Eliminar esta!
-import lombok.extern.slf4j.Slf4j; // Importar
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-// import org.springframework.context.annotation.Lazy; // ¡ELIMINAR ESTA IMPORTACIÓN!
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.user.SimpUser;
 import org.springframework.messaging.simp.user.SimpUserRegistry;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
  * Servicio central para el envío y almacenamiento de mensajes.
+ *
+ * ACTUALIZADO EN SESIÓN 2:
+ * - Añadida validación de permisos (el sender DEBE ser participante)
+ * - Mejorado el logging de seguridad
+ * - Validación del mapa de claves cifradas
+ *
  * Este servicio es llamado por el StompChatController cuando
  * un mensaje llega por WebSocket.
  */
 @Service
-// No uso @RequiredArgsConstructor porque necesito un constructor manual
-// para aplicar @Lazy y romper una dependencia circular.
-@Slf4j // Añade el objeto 'log' automáticamente
+@Slf4j
 public class MessageService {
 
     private final MessageRepository messageRepository;
     private final MessageKeyRepository messageKeyRepository;
-    private final SimpMessagingTemplate simpMessagingTemplate; // Para enviar mensajes por WebSocket
+    private final SimpMessagingTemplate simpMessagingTemplate;
     private final UserRepository userRepository;
-    private final SimpUserRegistry simpUserRegistry; // Mi registro de usuarios de WebSocket
+    private final SimpUserRegistry simpUserRegistry;
 
+    // ¡NUEVO! Mi servicio de validación de permisos
+    private final PermissionService permissionService;
 
     /**
-     * Constructor manual.
-     *
-     * Se eliminó @Lazy de SimpUserRegistry. Este componente es esencial
-     * que se inicialice al arranque para registrar las conexiones
-     * de WebSocket activas.
+     * Constructor con todas las dependencias.
+     * Ya no uso @RequiredArgsConstructor porque tengo muchas dependencias
+     * y es más claro hacerlo explícito.
      */
     @Autowired
     public MessageService(MessageRepository messageRepository,
                           MessageKeyRepository messageKeyRepository,
                           SimpMessagingTemplate simpMessagingTemplate,
                           UserRepository userRepository,
-                          SimpUserRegistry simpUserRegistry) { // <-- ¡@Lazy eliminado!
+                          SimpUserRegistry simpUserRegistry,
+                          PermissionService permissionService) { // <-- NUEVO
         this.messageRepository = messageRepository;
         this.messageKeyRepository = messageKeyRepository;
         this.simpMessagingTemplate = simpMessagingTemplate;
         this.userRepository = userRepository;
         this.simpUserRegistry = simpUserRegistry;
+        this.permissionService = permissionService; // <-- NUEVO
     }
 
-
     /**
-     * Este es el método central para enviar y guardar un mensaje.
-     * Es transaccional: si algo falla (ej. guardar una MessageKey),
-     * se revierte *todo* (incluyendo el Message principal).
+     * Método central para enviar y guardar un mensaje.
      *
-     * @param senderId      ID del usuario que envía.
-     * @param conversationId ID de la conversación.
-     * @param ciphertext    El contenido del mensaje, cifrado con AES.
-     * @param encryptedKeys Un mapa de { "recipientId" -> "clave AES cifrada con RSA de ese recipient" }
+     * FLUJO DE SEGURIDAD (NUEVO):
+     * 1. ✅ Valida que el sender sea participante de la conversación
+     * 2. ✅ Valida que el mapa de claves no esté vacío
+     * 3. Guarda el mensaje
+     * 4. Guarda las claves cifradas
+     * 5. Envía el mensaje por WebSocket a los destinatarios online
+     *
+     * Es transaccional: si algo falla, se revierte TODO.
+     *
+     * @param senderId      ID del usuario que envía
+     * @param conversationId ID de la conversación
+     * @param ciphertext    Contenido del mensaje cifrado con AES
+     * @param encryptedKeys Mapa de { "recipientId" -> "clave AES cifrada con RSA" }
+     *
+     * @throws org.springframework.security.access.AccessDeniedException Si el sender no es participante
+     * @throws IllegalArgumentException Si el mapa de claves está vacío o es inválido
      */
     @Transactional
-    public void sendAndStoreMessage(Long senderId, Long conversationId, String ciphertext, Map<String, String> encryptedKeys) {
+    public void sendAndStoreMessage(Long senderId, Long conversationId,
+                                    String ciphertext, Map<String, String> encryptedKeys) {
 
-        // 1. Guardar el mensaje principal (el ciphertext)
+        log.info("📨 Procesando mensaje de usuario {} para conversación {}", senderId, conversationId);
+
+        // ============================================
+        // 🔒 VALIDACIONES DE SEGURIDAD (NUEVAS)
+        // ============================================
+
+        // VALIDACIÓN #1: El sender DEBE ser participante de la conversación
+        // Si no lo es, lanza AccessDeniedException
+        permissionService.validateCanSendMessages(senderId, conversationId);
+        log.debug("✅ Validación de permisos exitosa para usuario {}", senderId);
+
+        // VALIDACIÓN #2: El mapa de claves NO puede estar vacío
+        // Esto es crucial para E2EE: cada destinatario necesita su clave
+        if (encryptedKeys == null || encryptedKeys.isEmpty()) {
+            log.error("❌ Error de validación: Mapa de claves vacío para mensaje en conversación {}", conversationId);
+            throw new IllegalArgumentException(
+                    "El mapa de claves cifradas no puede estar vacío. " +
+                            "Cada destinatario debe tener una clave para descifrar el mensaje."
+            );
+        }
+
+        // ============================================
+        // 💾 GUARDADO DEL MENSAJE
+        // ============================================
+
+        // 1. Guardo el mensaje principal (el ciphertext)
         Conversation conv = new Conversation();
         conv.setId(conversationId); // Solo necesito el ID para la relación JPA
+
         Message message = new Message();
         message.setConversation(conv);
         message.setSenderId(senderId);
         message.setCiphertext(ciphertext);
-        message = messageRepository.save(message); // Guardo y obtengo el ID del mensaje
-        log.debug("Mensaje {} guardado en conv {}", message.getId(), conversationId);
 
-        // 2. Validar y obtener IDs de los destinatarios
-        if (encryptedKeys == null || encryptedKeys.isEmpty()) {
-            log.error("Error: encryptedKeys map está vacío o nulo para convId: {}", conversationId);
-            // Lanzo una excepción para que se revierta la transacción (rollback)
-            throw new IllegalArgumentException("El mapa de claves cifradas no puede estar vacío.");
-        }
+        message = messageRepository.save(message);
+        log.debug("💾 Mensaje {} guardado en BD para conversación {}", message.getId(), conversationId);
 
-        // Las claves del mapa son String, las convierto a Long
-        List<Long> recipientIds = encryptedKeys.keySet().stream()
-                .map(Long::parseLong)
-                .collect(Collectors.toList());
+        // ============================================
+        // 🔐 GUARDADO DE CLAVES Y ENVÍO POR WEBSOCKET
+        // ============================================
 
-        // 3. Obtener los usernames (necesarios para el STOMP destination)
-        // Busco todos los usuarios de una vez para ser eficiente (evito N+1 queries)
-        Map<Long, String> userIdToUsernameMap = userRepository.findAllById(recipientIds).stream()
+        // 2. Convierto los IDs de String a Long (las claves del mapa vienen como String desde JSON)
+        Map<Long, String> recipientKeysMap = encryptedKeys.entrySet().stream()
+                .collect(Collectors.toMap(
+                        entry -> Long.parseLong(entry.getKey()),
+                        Map.Entry::getValue
+                ));
+
+        // 3. Obtengo los usernames de todos los destinatarios de UNA VEZ
+        // (evito hacer N queries individuales - optimización de rendimiento)
+        Map<Long, String> userIdToUsernameMap = userRepository
+                .findAllById(recipientKeysMap.keySet())
+                .stream()
                 .collect(Collectors.toMap(User::getId, User::getUsername));
 
-        // 4. Iterar, guardar la MessageKey (clave cifrada) y ENVIAR por WebSocket
-        for (Long recipientId : recipientIds) {
-            String encryptedKeyForRecipient = encryptedKeys.get(recipientId.toString());
+        // 4. Para cada destinatario: guardo su clave y le envío el mensaje (si está online)
+        for (Map.Entry<Long, String> entry : recipientKeysMap.entrySet()) {
+            Long recipientId = entry.getKey();
+            String encryptedKeyForRecipient = entry.getValue();
             String recipientUsername = userIdToUsernameMap.get(recipientId);
 
-            if (recipientUsername != null && encryptedKeyForRecipient != null) {
+            // Valido que el destinatario exista en mi BD
+            if (recipientUsername == null) {
+                log.warn("⚠️ Destinatario con ID {} no encontrado en la BD. Saltando...", recipientId);
+                continue; // Paso al siguiente destinatario
+            }
 
-                // 4a. Guardar la MessageKey específica para este destinatario
-                MessageKey mk = new MessageKey();
-                mk.setMessage(message); // Relaciono con el mensaje que guardé en paso 1
-                mk.setRecipientId(recipientId);
-                mk.setEncryptedKey(encryptedKeyForRecipient);
-                messageKeyRepository.save(mk);
-                log.debug("MessageKey guardada para msg {} y recipient {}", message.getId(), recipientId);
+            // VALIDACIÓN ADICIONAL: El destinatario también debe ser participante
+            // (esto evita que un atacante agregue claves para usuarios random)
+            try {
+                permissionService.validateIsParticipant(recipientId, conversationId);
+            } catch (Exception e) {
+                log.warn("🚨 INTENTO SOSPECHOSO: El mensaje incluye una clave para el usuario {} " +
+                                "que NO es participante de la conversación {}. Ignorando.",
+                        recipientId, conversationId);
+                continue; // No guardo la clave ni envío el mensaje
+            }
 
-                // 4b. Crear el payload para STOMP
-                StompMessagePayload payload = new StompMessagePayload();
-                payload.setConversationId(conversationId);
-                payload.setCiphertext(ciphertext);
-                payload.setSenderId(senderId);
-                // Solo envío la clave que le pertenece a ESTE destinatario
-                payload.setEncryptedKeys(Map.of(recipientId.toString(), encryptedKeyForRecipient));
+            // 4a. Guardo la MessageKey específica para este destinatario
+            MessageKey mk = new MessageKey();
+            mk.setMessage(message);
+            mk.setRecipientId(recipientId);
+            mk.setEncryptedKey(encryptedKeyForRecipient);
+            messageKeyRepository.save(mk);
+            log.debug("🔑 Clave guardada para mensaje {} y destinatario {}", message.getId(), recipientId);
 
-                // 4c. VERIFICACIÓN CON SimpUserRegistry (Entrega en tiempo real)
-                // Aquí compruebo si el usuario está REALMENTE conectado al WebSocket
-                SimpUser user = simpUserRegistry.getUser(recipientUsername);
+            // 4b. Preparo el payload para STOMP
+            StompMessagePayload payload = new StompMessagePayload();
+            payload.setConversationId(conversationId);
+            payload.setCiphertext(ciphertext);
+            payload.setSenderId(senderId);
+            // Solo envío la clave que le pertenece a ESTE destinatario
+            payload.setEncryptedKeys(Map.of(recipientId.toString(), encryptedKeyForRecipient));
 
-                if (user != null && user.hasSessions()) {
-                    // ¡El usuario está online!
-                    log.info("Usuario '{}' encontrado en SimpUserRegistry con {} sesión(es). Intentando enviar...", recipientUsername, user.getSessions().size());
+            // 4c. Verifico si el destinatario está ONLINE (conectado a WebSocket)
+            SimpUser user = simpUserRegistry.getUser(recipientUsername);
 
-                    // ¡Enviando el mensaje!
-                    // El destino es /user/{username}/queue/messages
-                    // Spring lo traducirá a la cola específica de la sesión del usuario.
-                    simpMessagingTemplate.convertAndSendToUser(recipientUsername, "/queue/messages", payload);
+            if (user != null && user.hasSessions()) {
+                // ¡El destinatario está online! Envío el mensaje en tiempo real
+                log.info("📤 Enviando mensaje a usuario online: {} (ID: {})", recipientUsername, recipientId);
 
-                    log.info("Mensaje reenviado a usuario: {} (ID: {})", recipientUsername, recipientId);
-                } else {
-                    // 4d. Manejo de entrega "offline"
-                    log.warn("Usuario '{}' NO encontrado en SimpUserRegistry o sin sesiones activas. El mensaje se guardó pero no se pudo entregar en tiempo real.", recipientUsername);
-                    // NOTA: No hago nada más. El mensaje SÍ se guardó en la BD (pasos 1 y 4a).
-                    // El usuario recibirá este mensaje la próxima vez que pida
-                    // el historial de mensajes (getMessageHistory).
-                }
+                simpMessagingTemplate.convertAndSendToUser(
+                        recipientUsername,
+                        "/queue/messages",
+                        payload
+                );
 
+                log.debug("✅ Mensaje entregado exitosamente a {}", recipientUsername);
             } else {
-                log.warn("No se pudo encontrar username para ID: {} o falta la clave cifrada. Saltando...", recipientId);
+                // El destinatario está offline
+                // El mensaje YA está guardado en la BD, lo recibirá cuando pida el historial
+                log.debug("📭 Usuario {} está offline. Mensaje guardado para entrega posterior.", recipientUsername);
             }
         }
+
+        log.info("✅ Procesamiento de mensaje completado para conversación {}", conversationId);
     }
 }

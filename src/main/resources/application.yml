@@ -1,32 +1,104 @@
-server:
-  port: 8080  # Puerto donde correrá tu API
+# ============================================
+# CONFIGURACIÓN PRINCIPAL DE SPRING BOOT
+# ============================================
+# Este archivo contiene la configuración BASE de mi aplicación.
+# Los valores sensibles se cargan desde variables de entorno o tienen
+# valores por defecto SOLO para desarrollo.
+#
+# IMPORTANTE: En producción, SIEMPRE usa variables de entorno reales.
+# ============================================
 
+# ============================================
+# CONFIGURACIÓN DEL SERVIDOR
+# ============================================
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-stacktrace: never
+    include-message: always
+
+# ============================================
+# SPRING FRAMEWORK
+# ============================================
 spring:
+  application:
+    name: chatPrivate
+
+  # ============================================
+  # CONFIGURACIÓN DE BASE DE DATOS
+  # ============================================
   datasource:
-    url: jdbc:mysql://localhost:3306/chatPrivate?useSSL=false&serverTimezone=UTC
-    username: root         # <-- tu usuario de MySQL
-    password: 5095  # <-- tu password de MySQL
+    # Valores por defecto para desarrollo local
+    # En producción, sobrescríbelos con variables de entorno
+    url: ${DB_URL:jdbc:mysql://localhost:3306/chatPrivate?useSSL=false&serverTimezone=UTC}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:5095}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+    # HikariCP (pool de conexiones) - Configuración optimizada
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+
+  # ============================================
+  # JPA / HIBERNATE
+  # ============================================
   jpa:
     hibernate:
-      ddl-auto: update     # crea/actualiza tablas automáticamente (en dev)
-    show-sql: true         # muestra SQL en consola
+      # En desarrollo: update (actualiza schema automáticamente)
+      # En producción: validate (solo valida que coincida)
+      ddl-auto: ${DDL_AUTO:update}
+
+    # Mostrar SQL en consola (útil en desarrollo)
+    show-sql: ${SHOW_SQL:true}
+
     properties:
       hibernate:
         format_sql: true
-    dialect: org.hibernate.dialect.MySQL8Dialect
+        open-in-view: false
 
-
-
-# JWT (los valores que usas en JwtService)
+# ============================================
+# CONFIGURACIÓN PERSONALIZADA DE MI APP
+# ============================================
 app:
+  # ============================================
+  # JWT (JSON Web Tokens)
+  # ============================================
   jwt:
-    secret: "b49aa764aa2871f12ac13b390221b494f7d9e1e748e0a1f136b9285f82cb99e2" # mínimo 32 chars
-    expirationMs: 86400000  # 24 horas en milisegundos
+    # ⚠️ VALOR POR DEFECTO SOLO PARA DESARROLLO ⚠️
+    # En producción, SIEMPRE usa una variable de entorno con un secreto único
+    # Este valor por defecto te permite arrancar la app localmente
+    secret: ${JWT_SECRET:b49aa764aa2871f12ac13b390221b494f7d9e1e748e0a1f136b9285f82cb99e2}
+
+    # Tiempo de expiración: 24 horas por defecto
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+  # ============================================
+  # CORS (Cross-Origin Resource Sharing)
+  # ============================================
   cors:
-    allowed-origins:
-      - "http://localhost:52803"
-      - "http://127.0.0.1:52803"
-      - "http://localhost:55777"
-      - "http://127.0.0.1:55777"
+    # Orígenes permitidos por defecto (localhost para desarrollo)
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:52803,http://127.0.0.1:52803,http://localhost:55777,http://127.0.0.1:55777}
+
+# ============================================
+# LOGGING (Registros de la aplicación)
+# ============================================
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+    com.chatprivate: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+  file:
+    name: ${LOG_FILE_PATH:logs/application.log}
+    max-size: 10MB
+    max-history: 30

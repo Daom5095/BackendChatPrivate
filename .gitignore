@@ -31,3 +31,46 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# ============================================
+# ¡NUEVAS REGLAS DE SEGURIDAD!
+# ============================================
+
+# Archivos de configuración con secretos
+# NUNCA subir estos archivos, contienen contraseñas y claves
+application-local.yml
+application-dev.yml
+application-prod.yml
+application-secrets.yml
+
+# Variables de entorno
+# Este archivo tiene TODAS las contraseñas y secretos
+.env
+.env.local
+.env.*.local
+
+# Logs
+# Pueden contener información sensible
+logs/
+*.log
+*.log.*
+
+# Bases de datos locales
+# Si usas H2 o SQLite para tests
+*.db
+*.db-journal
+
+# Backups de BD que puedan tener datos reales
+*.sql
+*.dump
+
+# Certificados y claves (por si usas HTTPS localmente)
+*.p12
+*.jks
+*.key
+*.pem
+*.crt
+
+# Archivos temporales de Maven
+.flattened-pom.xml
+dependency-reduced-pom.xml
