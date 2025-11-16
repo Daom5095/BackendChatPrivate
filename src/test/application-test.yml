@@ -1,0 +1,33 @@
+# ============================================
+# CONFIGURACIÓN DE PRUEBAS (H2 EN MEMORIA)
+# ============================================
+
+spring:
+  # Configuración de BD de prueba
+  datasource:
+    # H2 en memoria, se borra al terminar
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+
+  # Configuración de JPA/Hibernate para H2
+  jpa:
+    hibernate:
+      # Crea y borra el schema en cada ejecución
+      ddl-auto: create-drop
+    show-sql: true # Muestra SQL en consola (útil para debug)
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+  # Desactivamos Flyway para los tests
+  # 'create-drop' de Hibernate se encargará del schema
+  flyway:
+    enabled: false
+
+# Usamos un secreto JWT de prueba (no el de producción)
+app:
+  jwt:
+    secret: "EsteEsUnSecretoDePruebaSuperSeguroParaLosTestsDeJWT"
+    expiration-ms: 3600000 # 1 hora
