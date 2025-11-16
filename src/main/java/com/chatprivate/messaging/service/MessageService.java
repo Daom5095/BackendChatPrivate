@@ -11,7 +11,7 @@ import com.chatprivate.user.UserRepository;
 // import lombok.RequiredArgsConstructor; // ¡Eliminar esta!
 import lombok.extern.slf4j.Slf4j; // Importar
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy; // ¡Importante!
+// import org.springframework.context.annotation.Lazy; // ¡ELIMINAR ESTA IMPORTACIÓN!
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.user.SimpUser;
 import org.springframework.messaging.simp.user.SimpUserRegistry;
@@ -44,18 +44,17 @@ public class MessageService {
 
     /**
      * Constructor manual.
-     * Utilizo @Lazy en SimpUserRegistry.
-     * Razón: SimpUserRegistry puede depender de beans que dependen de
-     * MessageService, creando un "ciclo de dependencia" que impide
-     * a Spring arrancar. @Lazy le dice a Spring que no inyecte
-     * SimpUserRegistry hasta que se use por primera vez, rompiendo el ciclo.
+     *
+     * Se eliminó @Lazy de SimpUserRegistry. Este componente es esencial
+     * que se inicialice al arranque para registrar las conexiones
+     * de WebSocket activas.
      */
     @Autowired
     public MessageService(MessageRepository messageRepository,
                           MessageKeyRepository messageKeyRepository,
                           SimpMessagingTemplate simpMessagingTemplate,
                           UserRepository userRepository,
-                          @Lazy SimpUserRegistry simpUserRegistry) { // ¡@Lazy es la clave!
+                          SimpUserRegistry simpUserRegistry) { // <-- ¡@Lazy eliminado!
         this.messageRepository = messageRepository;
         this.messageKeyRepository = messageKeyRepository;
         this.simpMessagingTemplate = simpMessagingTemplate;

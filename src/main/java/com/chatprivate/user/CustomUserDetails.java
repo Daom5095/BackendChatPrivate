@@ -17,6 +17,19 @@ public class CustomUserDetails implements UserDetails {
         return user;
     }
 
+    // --- AÑADIR ESTE MÉTODO ---
+    /**
+     * Sobrescribe el método toString() para que siempre devuelva el nombre de usuario.
+     * Esto es crucial porque algunos componentes de Spring STOMP usan toString()
+     * en lugar de getName() para identificar al 'Principal' de la sesión.
+     * Esto resuelve la inconsistencia que causa el error "Could not find session id".
+     */
+    @Override
+    public String toString() {
+        return this.user.getUsername();
+    }
+    // --- FIN DE LA ADICIÓN ---
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return Collections.emptyList();
