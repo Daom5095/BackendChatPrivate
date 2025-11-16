@@ -299,6 +299,32 @@ class ConversationServiceTest {
         assertEquals("keyForA_2", page1.getContent().get(0).getEncryptedKey()); // Clave de userA
     }
 
+    @Test
+    void getMessageHistory_ShouldReturnAllMessages_WithKeys() {
+        // ARRANGE
+        // El setUp() ya creó conv2 (chat A-C) con 2 mensajes
+
+        // ACT
+        // Pedimos el historial COMPLETO de conv2 como userA
+        List<MessageHistoryDto> history = conversationService.getMessageHistory(
+                conv2.getId(),
+                userA.getId()
+        );
+
+        // ASSERT
+        assertNotNull(history);
+        assertEquals(2, history.size()); // Debe devolver los 2 mensajes
+
+        // Verifica que los mensajes estén y tengan las claves correctas para userA
+        assertTrue(history.stream()
+                .anyMatch(m -> m.getCiphertext().equals("Hola C, este es el primer mensaje")
+                        && m.getEncryptedKey().equals("keyForA_2")));
+
+        assertTrue(history.stream()
+                .anyMatch(m -> m.getCiphertext().equals("Hola A, este es el segundo mensaje")
+                        && m.getEncryptedKey().equals("keyForA_3")));
+    }
+
 
     /**
      * Helper para añadir un mensaje y sus claves cifradas a la BD
