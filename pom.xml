@@ -168,11 +168,32 @@
         <!-- ============================================ -->
 
         <!-- DOTENV: Para cargar variables desde archivo .env -->
-        <!-- Esto hace que Spring cargue automáticamente el archivo .env -->
+        <!-- Esta es la librería correcta y más usada -->
         <dependency>
-            <groupId>me.paulschwarz</groupId>
-            <artifactId>spring-dotenv</artifactId>
-            <version>4.0.0</version>
+            <groupId>io.github.cdimascio</groupId>
+            <artifactId>dotenv-java</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+
+        <!-- BUCKET4J: Rate Limiting (protección contra fuerza bruta y spam) -->
+        <!-- Limita el número de peticiones que un usuario/IP puede hacer -->
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j-core</artifactId>
+            <version>8.10.1</version>
+        </dependency>
+
+        <!-- FLYWAY: Migraciones de Base de Datos Versionadas -->
+        <!-- Controla y versiona los cambios en el schema de la BD -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+
+        <!-- Flyway MySQL (requerido para MySQL 8) -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
         </dependency>
 
     </dependencies>

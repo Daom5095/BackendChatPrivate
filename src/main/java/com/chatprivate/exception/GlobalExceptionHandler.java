@@ -14,130 +14,167 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.stream.Collectors;
 
 /**
- * Mi "Controlador de Errores" global.
- * La anotación @RestControllerAdvice le dice a Spring: "Si cualquier
- * @RestController lanza una excepción, búsca un manejador aquí primero".
- * Esto centraliza todo mi manejo de errores de la API REST.
+ * Controlador global de excepciones.
+ *
+ * ACTUALIZADO EN SESIÓN 2:
+ * - Añadido manejo de RateLimitExceededException (HTTP 429)
+ * - Mejorado el logging de eventos de seguridad
+ *
+ * Este componente centraliza el manejo de errores de TODA la API REST.
+ * Cada tipo de excepción se convierte en una respuesta HTTP apropiada.
  */
 @RestControllerAdvice
-@Slf4j // Uso un logger (SLF4J) para registrar los errores internos
+@Slf4j
 public class GlobalExceptionHandler {
 
     /**
-     * Maneja errores de validación (ej. campos @NotBlank, @Email en DTOs).
-     * Se activa cuando un DTO anotado con @Valid falla la validación.
-     *
-     * @param ex      La excepción de validación.
-     * @param request La petición HTTP que causó el error.
-     * @return ResponseEntity con estado 400 (Bad Request) y los mensajes de error.
+     * Maneja errores de validación de DTOs (@Valid).
+     * Devuelve HTTP 400 (Bad Request).
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponseDto> handleValidationExceptions(MethodArgumentNotValidException ex, HttpServletRequest request) {
-        // Combino todos los mensajes de error de los campos en un solo string
+    public ResponseEntity<ErrorResponseDto> handleValidationExceptions(
+            MethodArgumentNotValidException ex,
+            HttpServletRequest request) {
+
+        // Combino todos los mensajes de error en uno solo
         String errorMessage = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining(", "));
 
-        log.warn("Error de validación: {}", errorMessage);
+        log.warn("⚠️ Error de validación en {}: {}", request.getRequestURI(), errorMessage);
+
         ErrorResponseDto errorDto = new ErrorResponseDto(
                 HttpStatus.BAD_REQUEST.value(),
                 errorMessage,
                 request.getRequestURI()
         );
+
         return new ResponseEntity<>(errorDto, HttpStatus.BAD_REQUEST);
     }
 
     /**
-     * Maneja errores de argumentos ilegales (ej. "El mapa de claves no puede estar vacío").
-     * Esta es una excepción que lanzo manualmente desde mis servicios si la lógica de negocio no se cumple.
-     *
-     * @param ex      La excepción.
-     * @param request La petición.
-     * @return ResponseEntity con estado 400 (Bad Request).
+     * Maneja argumentos ilegales (errores de lógica de negocio).
+     * Devuelve HTTP 400 (Bad Request).
      */
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponseDto> handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request) {
-        log.warn("Argumento ilegal: {}", ex.getMessage());
+    public ResponseEntity<ErrorResponseDto> handleIllegalArgumentException(
+            IllegalArgumentException ex,
+            HttpServletRequest request) {
+
+        log.warn("⚠️ Argumento ilegal en {}: {}", request.getRequestURI(), ex.getMessage());
+
         ErrorResponseDto errorDto = new ErrorResponseDto(
                 HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage(), // El mensaje que yo mismo definí en el servicio
+                ex.getMessage(),
                 request.getRequestURI()
         );
+
         return new ResponseEntity<>(errorDto, HttpStatus.BAD_REQUEST);
     }
 
     /**
-     * Maneja credenciales incorrectas en el login (fallo de Spring Security).
-     *
-     * @param ex      La excepción.
-     * @param request La petición.
-     * @return ResponseEntity con estado 401 (Unauthorized).
+     * Maneja credenciales incorrectas en el login.
+     * Devuelve HTTP 401 (Unauthorized).
      */
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ErrorResponseDto> handleBadCredentialsException(BadCredentialsException ex, HttpServletRequest request) {
-        log.warn("Intento de login fallido: {}", ex.getMessage());
+    public ResponseEntity<ErrorResponseDto> handleBadCredentialsException(
+            BadCredentialsException ex,
+            HttpServletRequest request) {
+
+        log.warn("🔐 Intento de login fallido en {}: {}", request.getRequestURI(), ex.getMessage());
+
         ErrorResponseDto errorDto = new ErrorResponseDto(
                 HttpStatus.UNAUTHORIZED.value(),
-                "Usuario o contraseña incorrectos", // Mensaje genérico por seguridad
+                "Usuario o contraseña incorrectos",
                 request.getRequestURI()
         );
+
         return new ResponseEntity<>(errorDto, HttpStatus.UNAUTHORIZED);
     }
 
     /**
-     * Maneja el caso en que un usuario no se encuentra (login o carga de seguridad).
-     *
-     * @param ex      La excepción.
-     * @param request La petición.
-     * @return ResponseEntity con estado 404 (Not Found).
+     * Maneja usuarios no encontrados.
+     * Devuelve HTTP 404 (Not Found).
      */
     @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<ErrorResponseDto> handleUsernameNotFoundException(UsernameNotFoundException ex, HttpServletRequest request) {
-        log.warn("Usuario no encontrado: {}", ex.getMessage());
+    public ResponseEntity<ErrorResponseDto> handleUsernameNotFoundException(
+            UsernameNotFoundException ex,
+            HttpServletRequest request) {
+
+        log.warn("👤 Usuario no encontrado en {}: {}", request.getRequestURI(), ex.getMessage());
+
         ErrorResponseDto errorDto = new ErrorResponseDto(
                 HttpStatus.NOT_FOUND.value(),
-                "Usuario o contraseña incorrectos", // Mensaje genérico
+                "Usuario o contraseña incorrectos", // Mensaje genérico por seguridad
                 request.getRequestURI()
         );
+
         return new ResponseEntity<>(errorDto, HttpStatus.NOT_FOUND);
     }
 
     /**
-     * Maneja intentos de acceso denegado (ej. no-owner intentando borrar a alguien).
-     *
-     * @param ex      La excepción.
-     * @param request La petición.
-     * @return ResponseEntity con estado 403 (Forbidden).
+     * Maneja accesos denegados (violaciones de permisos).
+     * Devuelve HTTP 403 (Forbidden).
      */
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponseDto> handleAccessDeniedException(AccessDeniedException ex, HttpServletRequest request) {
-        log.warn("Acceso denegado: {}", ex.getMessage());
+    public ResponseEntity<ErrorResponseDto> handleAccessDeniedException(
+            AccessDeniedException ex,
+            HttpServletRequest request) {
+
+        // Este es un evento de seguridad importante, lo logueo como WARNING
+        log.warn("🚨 Acceso denegado en {}: {}", request.getRequestURI(), ex.getMessage());
+
         ErrorResponseDto errorDto = new ErrorResponseDto(
                 HttpStatus.FORBIDDEN.value(),
-                ex.getMessage(), // "No autorizado para eliminar..."
+                ex.getMessage(),
                 request.getRequestURI()
         );
+
         return new ResponseEntity<>(errorDto, HttpStatus.FORBIDDEN);
     }
 
-
     /**
-     * Mi "catch-all". Si ocurre cualquier otra excepción que no manejé
-     * (ej. NullPointerException), esto la atrapará.
+     * Maneja rate limit excedido (demasiadas peticiones).
+     * Devuelve HTTP 429 (Too Many Requests).
      *
-     * @param ex      La excepción inesperada.
-     * @param request La petición.
-     * @return ResponseEntity con estado 500 (Internal Server Error).
+     * ¡NUEVO EN SESIÓN 2!
      */
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponseDto> handleGlobalException(Exception ex, HttpServletRequest request) {
-        // Este es un error inesperado, así que lo logueo como ERROR
-        log.error("Error interno inesperado: {}", ex.getMessage(), ex);
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ErrorResponseDto> handleRateLimitExceededException(
+            RateLimitExceededException ex,
+            HttpServletRequest request) {
+
+        // Este es un evento de seguridad crítico (posible ataque)
+        log.warn("🚨 RATE LIMIT EXCEDIDO en {}: {}", request.getRequestURI(), ex.getMessage());
+
         ErrorResponseDto errorDto = new ErrorResponseDto(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "Ocurrió un error inesperado. Por favor, intenta de nuevo.",
+                HttpStatus.TOO_MANY_REQUESTS.value(), // 429
+                ex.getMessage(),
                 request.getRequestURI()
         );
+
+        return new ResponseEntity<>(errorDto, HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    /**
+     * Catch-all: Maneja cualquier excepción no prevista.
+     * Devuelve HTTP 500 (Internal Server Error).
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponseDto> handleGlobalException(
+            Exception ex,
+            HttpServletRequest request) {
+
+        // Este es un error inesperado, lo logueo como ERROR con el stack trace completo
+        log.error("💥 Error interno inesperado en {}: {}",
+                request.getRequestURI(), ex.getMessage(), ex);
+
+        ErrorResponseDto errorDto = new ErrorResponseDto(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "Ocurrió un error inesperado. Por favor, intenta de nuevo más tarde.",
+                request.getRequestURI()
+        );
+
         return new ResponseEntity<>(errorDto, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

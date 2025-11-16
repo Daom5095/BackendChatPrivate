@@ -8,6 +8,7 @@ import com.chatprivate.user.UserRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -147,6 +148,46 @@ public class ConversationController {
         Long userId = user.getId();
 
         List<MessageHistoryDto> history = conversationService.getMessageHistory(conversationId, userId);
+
+        return ResponseEntity.ok(history);
+    }
+
+    /**
+     * Obtiene el historial de mensajes CON PAGINACIÓN.
+     *
+     * ¡NUEVO EN SESIÓN 3!
+     *
+     * USO:
+     * GET /api/conversations/5/messages/paged?page=0&size=50
+     *
+     * PARÁMETROS:
+     * - page: Número de página (empieza en 0)
+     * - size: Cantidad de mensajes por página (default: 50)
+     *
+     * VENTAJAS:
+     * - No carga miles de mensajes de golpe
+     * - Permite "infinite scroll" en el frontend
+     * - Mucho más rápido y eficiente
+     */
+    @GetMapping("/{id}/messages/paged")
+    public ResponseEntity<Page<MessageHistoryDto>> getMessageHistoryPaged(
+            Authentication authentication,
+            @PathVariable("id") Long conversationId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
+
+        Long userId = user.getId();
+
+        // Validación de parámetros
+        if (page < 0) page = 0;
+        if (size < 1 || size > 200) size = 50; // Máximo 200 mensajes por request
+
+        Page<MessageHistoryDto> history = conversationService.getMessageHistoryPaged(
+                conversationId, userId, page, size);
 
         return ResponseEntity.ok(history);
     }

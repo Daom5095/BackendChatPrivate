@@ -3,178 +3,200 @@ package com.chatprivate.user;
 import com.chatprivate.auth.AuthResponse;
 import com.chatprivate.auth.LoginRequest;
 import com.chatprivate.auth.RegisterRequest;
+import com.chatprivate.messaging.model.UserPublicKey;
+import com.chatprivate.messaging.repository.UserPublicKeyRepository;
 import com.chatprivate.security.JwtService;
+import com.chatprivate.security.SecurityAuditLogger;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import com.chatprivate.messaging.model.UserPublicKey;
-import com.chatprivate.messaging.repository.UserPublicKeyRepository;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Servicio principal para la lógica de negocio de Usuarios.
- * Maneja el registro y el login.
+ *
+ * ACTUALIZADO EN SESIÓN 2:
+ * - Integrado SecurityAuditLogger para eventos de seguridad
+ * - Mejorada la validación de datos
+ * - Mejor manejo de errores
  */
 @Service
-@RequiredArgsConstructor // Lombok genera el constructor con los campos 'final'
+@RequiredArgsConstructor
 public class UserService {
 
-    private static final Logger log = LoggerFactory.getLogger(UserService.class);
-
-    // Dependencias inyectadas
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder; // Para hashear contraseñas
+    private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final UserPublicKeyRepository userPublicKeyRepository;
+    private final SecurityAuditLogger auditLogger; // <-- NUEVO
 
     /**
      * Registra un nuevo usuario en el sistema.
-     * 1. Valida que el username/email no existan.
-     * 2. Hashea la contraseña.
-     * 3. Guarda la entidad User (incluyendo salt/IV/clave privada cifrada).
-     * 4. Guarda la clave pública del usuario.
-     * 5. Genera y devuelve un token JWT.
      *
-     * @param request DTO con los datos de registro (validados por @Valid en el controller).
-     * @return AuthResponse con el token JWT.
+     * FLUJO DE SEGURIDAD:
+     * 1. Valida que username/email no existan
+     * 2. Hashea la contraseña
+     * 3. Guarda el usuario
+     * 4. Guarda la clave pública
+     * 5. Genera token JWT
+     * 6. Loguea el evento de seguridad
      */
-    @Transactional // Si algo falla (ej. guardar clave pública), se revierte el guardado del usuario
+    @Transactional
     public AuthResponse register(RegisterRequest request) {
-        log.info("Iniciando registro para usuario: {}", request.getUsername());
+        // Logueo el intento de registro
+        auditLogger.logRegistration(
+                request.getUsername(),
+                request.getEmail(),
+                false, // Aún no sabemos si será exitoso
+                "N/A" // La IP se loguea en el controller
+        );
 
-        // 1. Validar si usuario o email ya existen
+        // Validaciones de negocio
         if (userRepository.existsByUsername(request.getUsername())) {
-            log.warn("Intento de registro fallido: Username {} ya existe.", request.getUsername());
+            auditLogger.logRegistration(request.getUsername(), request.getEmail(), false, "N/A");
             throw new IllegalArgumentException("El nombre de usuario ya está en uso.");
         }
+
         if (userRepository.existsByEmail(request.getEmail())) {
-            log.warn("Intento de registro fallido: Email {} ya existe.", request.getEmail());
+            auditLogger.logRegistration(request.getUsername(), request.getEmail(), false, "N/A");
             throw new IllegalArgumentException("El email ya está en uso.");
         }
 
-
-        // 2. Hashear la contraseña recibida para guardarla en la BD
+        // Hasheo la contraseña
         String hashedPassword = passwordEncoder.encode(request.getPassword());
-        log.debug("Contraseña hasheada para usuario: {}", request.getUsername());
 
-        // 3. Crear la entidad User con todos los datos del request
+        // Creo la entidad User
         User user = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
-                .password(hashedPassword) // Guardo el hash
-                // --- Guardo los campos de cifrado que me envía el cliente ---
+                .password(hashedPassword)
                 .kekSalt(request.getKekSalt())
                 .encryptedPrivateKey(request.getEncryptedPrivateKey())
                 .kekIv(request.getKekIv())
-                // -----------------------------------------------------------
-                .build(); // createdAt se genera automáticamente en la entidad
+                .build();
 
-        // 4. Guardar el usuario
+        // Guardo el usuario
         User savedUser = userRepository.save(user);
-        log.info("Usuario {} guardado con ID: {}", savedUser.getUsername(), savedUser.getId());
 
-        // 5. Guardar la clave pública RSA (en su propia tabla)
+        // Guardo la clave pública
         if (request.getPublicKey() != null && !request.getPublicKey().isEmpty()) {
             UserPublicKey upk = new UserPublicKey();
-            upk.setUserId(savedUser.getId()); // ID del usuario recién guardado
+            upk.setUserId(savedUser.getId());
             upk.setPublicKeyPem(request.getPublicKey());
             userPublicKeyRepository.save(upk);
-            log.info("Clave pública guardada para usuario ID: {}", savedUser.getId());
         } else {
-            // Esto es un problema de lógica de cliente, debería ser obligatorio
-            log.warn("No se proporcionó clave pública durante el registro para usuario: {}", savedUser.getUsername());
+            auditLogger.logSuspiciousActivity(
+                    "Registro sin clave pública",
+                    "Usuario: " + savedUser.getUsername()
+            );
         }
 
-        // 6. Generar token JWT para el nuevo usuario
+        // Genero token JWT
         String token = jwtService.generateToken(savedUser);
-        log.info("Token JWT generado para usuario: {}", savedUser.getUsername());
 
-        // 7. Devolver solo el token en la respuesta de registro.
-        // No devuelvo los datos de la clave cifrada aquí, solo en el login.
+        // Logueo el éxito
+        auditLogger.logRegistration(
+                savedUser.getUsername(),
+                savedUser.getEmail(),
+                true,
+                "N/A"
+        );
+
         return AuthResponse.builder()
                 .token(token)
                 .build();
     }
 
     /**
-     * Autentica a un usuario y le devuelve un token JWT
-     * junto con los datos necesarios para descifrar su clave privada.
+     * Autentica a un usuario y devuelve un token JWT.
      *
-     * @param request DTO con username y password.
-     * @return AuthResponse con JWT y los campos de cifrado (kekSalt, encryptedPrivateKey, kekIv).
+     * FLUJO DE SEGURIDAD:
+     * 1. Busca el usuario
+     * 2. Valida la contraseña
+     * 3. Genera token JWT
+     * 4. Loguea el evento de seguridad
      */
     public AuthResponse login(LoginRequest request) {
-        log.info("Iniciando login para usuario: {}", request.getUsername());
-
-        // 1. Buscar usuario por nombre de usuario
+        // Busco el usuario
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> {
-                    log.warn("Intento de login fallido: Usuario {} no encontrado.", request.getUsername());
-                    // Lanzo UsernameNotFoundException, mi GlobalExceptionHandler la convierte en 404
-                    // y devuelve un mensaje genérico.
+                    auditLogger.logLoginAttempt(
+                            request.getUsername(),
+                            false,
+                            "N/A",
+                            "Usuario no encontrado"
+                    );
                     return new UsernameNotFoundException("Usuario o contraseña incorrectos.");
                 });
 
-        // 2. Verificar la contraseña usando el hash almacenado
+        // Verifico la contraseña
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            log.warn("Intento de login fallido: Contraseña incorrecta para usuario {}.", request.getUsername());
-            // Lanzo BadCredentialsException, mi GlobalExceptionHandler la convierte en 401
-            // y devuelve un mensaje genérico.
+            auditLogger.logLoginAttempt(
+                    request.getUsername(),
+                    false,
+                    "N/A",
+                    "Contraseña incorrecta"
+            );
             throw new BadCredentialsException("Usuario o contraseña incorrectos.");
         }
-        log.info("Contraseña verificada para usuario: {}", request.getUsername());
 
-        // 3. Generar token JWT
+        // Genero token JWT
         String token = jwtService.generateToken(user);
-        log.info("Token JWT generado para usuario: {}", request.getUsername());
 
-        // 4. Construir la respuesta CON los datos de la clave cifrada
-        log.debug("Recuperando datos de clave cifrada para usuario: {}", request.getUsername());
+        // Logueo el éxito
+        auditLogger.logLoginAttempt(
+                request.getUsername(),
+                true,
+                "N/A",
+                null
+        );
+
+        // Construyo la respuesta con los datos de la clave cifrada
         AuthResponse response = AuthResponse.builder()
                 .token(token)
-                // --- Devuelvo los campos que el cliente necesita para descifrar su clave privada ---
                 .kekSalt(user.getKekSalt())
                 .encryptedPrivateKey(user.getEncryptedPrivateKey())
                 .kekIv(user.getKekIv())
-                // ---------------------------------------------------------------------------------
                 .build();
 
-        // Validar que los campos no sean nulos (¡importante!)
-        if (response.getKekSalt() == null || response.getEncryptedPrivateKey() == null || response.getKekIv() == null) {
-            log.error("¡Error crítico! Faltan datos de clave cifrada en la base de datos para el usuario: {}", user.getUsername());
-            // Si esto pasa, el cliente no puede descifrar su clave, es un error grave.
+        // Valido que los campos críticos no sean nulos
+        if (response.getKekSalt() == null ||
+                response.getEncryptedPrivateKey() == null ||
+                response.getKekIv() == null) {
+
+            auditLogger.logSecurityError(
+                    "Datos de clave cifrada faltantes para usuario: " + user.getUsername(),
+                    new RuntimeException("Datos incompletos")
+            );
+
             throw new RuntimeException("Error interno: Faltan datos de seguridad para el usuario.");
         }
 
-
-        log.info("Login exitoso para usuario: {}", request.getUsername());
         return response;
     }
 
     /**
      * Permite a un usuario subir/actualizar su clave pública.
-     *
-     * @param username     El usuario (obtenido del token de autenticación).
-     * @param publicKeyPem La nueva clave pública en formato PEM.
      */
     @Transactional
     public void uploadPublicKey(String username, String publicKeyPem) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
 
-        // Busca si ya existe una clave para actualizarla, o crea una nueva (upsert)
         UserPublicKey upk = userPublicKeyRepository.findByUserId(user.getId())
-                .orElse(new UserPublicKey()); // Crea una nueva si no existe
+                .orElse(new UserPublicKey());
 
         upk.setUserId(user.getId());
         upk.setPublicKeyPem(publicKeyPem);
-        // 'updatedAt' se actualiza automáticamente en la entidad UserPublicKey
 
         userPublicKeyRepository.save(upk);
-        log.info("Clave pública (re)guardada para usuario ID: {}", user.getId());
+
+        // Logueo el evento de seguridad
+        auditLogger.logSuspiciousActivity(
+                "Actualización de clave pública",
+                "Usuario: " + username + ", userId: " + user.getId()
+        );
     }
 }
