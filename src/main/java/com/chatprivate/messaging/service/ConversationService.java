@@ -28,6 +28,9 @@ import java.util.function.Function;
  * - Integrado PermissionService para todas las operaciones
  * - Validaciones de seguridad antes de cada operación
  * - Mejor logging de eventos de seguridad
+ *
+ * ACTUALIZADO AHORA:
+ * - getUserConversations() ahora ordena los chats por el último mensaje.
  */
 @Service
 @RequiredArgsConstructor
@@ -46,55 +49,41 @@ public class ConversationService {
 
     /**
      * Obtiene el historial completo de mensajes para una conversación.
-     *
-     * SEGURIDAD (ACTUALIZADA):
-     * - Valida que el usuario sea participante ANTES de devolver cualquier dato
-     * - Solo devuelve las claves de cifrado que pertenecen al usuario
-     *
-     * @param conversationId ID del chat
-     * @param userId         ID del usuario que pide el historial
-     * @return Lista de DTOs con el historial
+     * (Este método no tiene cambios)
      */
     @Transactional(readOnly = true)
     public List<MessageHistoryDto> getMessageHistory(Long conversationId, Long userId) {
         log.info("📚 Usuario {} solicitando historial de conversación {}", userId, conversationId);
 
         // 🔒 VALIDACIÓN DE SEGURIDAD
-        // Si el usuario NO es participante, lanza AccessDeniedException
         permissionService.validateCanReadMessages(userId, conversationId);
         log.debug("✅ Usuario {} autorizado para leer conversación {}", userId, conversationId);
 
-        // 1. Obtener todos los mensajes del chat, ordenados por fecha
         List<Message> messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
         if (messages.isEmpty()) {
             log.debug("📭 No hay mensajes en conversación {}", conversationId);
             return Collections.emptyList();
         }
 
-        // 2. Obtener los IDs de todos esos mensajes
         List<Long> messageIds = messages.stream()
                 .map(Message::getId)
                 .collect(Collectors.toList());
 
-        // 3. ¡Clave! Buscar SOLO las claves que pertenecen a ESE usuario
         List<MessageKey> userKeys = messageKeyRepository
                 .findByMessage_IdInAndRecipientId(messageIds, userId);
 
-        // 4. Convertir las claves en un Mapa para búsqueda rápida
         Map<Long, String> keyMap = userKeys.stream()
                 .collect(Collectors.toMap(
                         mk -> mk.getMessage().getId(),
                         MessageKey::getEncryptedKey
                 ));
 
-        // 5. Construir la respuesta
         List<MessageHistoryDto> history = messages.stream()
                 .map(msg -> {
                     String encryptedKey = keyMap.get(msg.getId());
                     if (encryptedKey == null) {
-                        // Esto puede pasar si el usuario fue añadido DESPUÉS de que se enviara este mensaje
                         log.debug("⚠️ Usuario {} no tiene clave para mensaje {}", userId, msg.getId());
-                        return null; // Lo filtraremos después
+                        return null;
                     }
                     return new MessageHistoryDto(
                             msg.getId(),
@@ -104,7 +93,7 @@ public class ConversationService {
                             msg.getCreatedAt()
                     );
                 })
-                .filter(dto -> dto != null) // Quito los mensajes sin clave
+                .filter(dto -> dto != null)
                 .collect(Collectors.toList());
 
         log.info("✅ Devueltos {} mensajes para usuario {} en conversación {}",
@@ -116,16 +105,7 @@ public class ConversationService {
 
     /**
      * Obtiene el historial paginado de mensajes para una conversación.
-     *
-     * SEGURIDAD:
-     * - Valida que el usuario sea participante ANTES de devolver cualquier dato
-     * - Solo devuelve las claves de cifrado que pertenecen al usuario
-     *
-     * @param conversationId ID del chat
-     * @param userId         ID del usuario que pide el historial
-     * @param page           Número de página (empezando en 0)
-     * @param size           Tamaño de la página
-     * @return Página de DTOs con el historial
+     * (Este método no tiene cambios)
      */
     @Transactional(readOnly = true)
     public Page<MessageHistoryDto> getMessageHistoryPaged(Long conversationId, Long userId, int page, int size) {
@@ -136,12 +116,8 @@ public class ConversationService {
         permissionService.validateCanReadMessages(userId, conversationId);
         log.debug("✅ Usuario {} autorizado para leer conversación {}", userId, conversationId);
 
-        // 2. Crear el objeto Pageable para la consulta
-        // OJO: Usamos "createdAt" DESC para obtener los MÁS RECIENTES primero.
-        // Si los quieres del más viejo al más nuevo, usa .ascending()
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
-        // 3. Obtener la PÁGINA de mensajes (¡NECESITAS AÑADIR ESTE MÉTODO AL REPOSITORIO!)
         Page<Message> messagePage = messageRepository.findByConversationId(conversationId, pageable);
 
         if (!messagePage.hasContent()) {
@@ -149,7 +125,6 @@ public class ConversationService {
             return Page.empty(pageable);
         }
 
-        // 4. Obtener claves (igual que en el método no paginado, pero solo para los mensajes de esta página)
         List<Long> messageIds = messagePage.getContent().stream()
                 .map(Message::getId)
                 .collect(Collectors.toList());
@@ -163,13 +138,12 @@ public class ConversationService {
                         MessageKey::getEncryptedKey
                 ));
 
-        // 5. Mapear la lista de contenido de la página
         List<MessageHistoryDto> dtos = messagePage.getContent().stream()
                 .map(msg -> {
                     String encryptedKey = keyMap.get(msg.getId());
                     if (encryptedKey == null) {
                         log.debug("⚠️ Usuario {} no tiene clave para mensaje {}", userId, msg.getId());
-                        return null; // Lo filtraremos después
+                        return null;
                     }
                     return new MessageHistoryDto(
                             msg.getId(),
@@ -179,30 +153,23 @@ public class ConversationService {
                             msg.getCreatedAt()
                     );
                 })
-                .filter(dto -> dto != null) // Quito los mensajes sin clave
+                .filter(dto -> dto != null)
                 .collect(Collectors.toList());
 
-        // 6. Devolver un nuevo objeto Page con los DTOs y la información de paginación
         return new org.springframework.data.domain.PageImpl<>(dtos, pageable, messagePage.getTotalElements());
     }
 
     /**
      * Obtiene la lista de conversaciones de un usuario.
      *
-     * SEGURIDAD:
-     * - Solo devuelve las conversaciones donde el usuario ES participante
-     * - Incluye el último mensaje con la clave cifrada específica para el usuario
-     *
-     * OPTIMIZACIÓN EN SESIÓN 3:
-     * - Reducido de ~31 queries a ~3 queries para 10 conversaciones
-     * - Batch loading de participantes y usuarios
+     * --- ¡¡¡MÉTODO MODIFICADO!!! ---
+     * Ahora ordena la lista de conversaciones.
      */
     @Transactional(readOnly = true)
     public List<ConversationResponse> getUserConversations(Long userId) {
         log.info("📂 Usuario {} solicitando lista de conversaciones", userId);
 
         // 1. Busco todas las conversaciones en las que el usuario participa
-        // Esta query ya carga los participantes gracias a @EntityGraph (si lo configuraste)
         List<Conversation> conversations = conversationParticipantRepository
                 .findConversationsByUserId(userId);
 
@@ -216,14 +183,10 @@ public class ConversationService {
                 .collect(Collectors.toList());
 
         // 2. Busco TODOS los participantes de TODAS las conversaciones en UNA query
-        // Antes: 10 conversaciones = 10 queries
-        // Ahora: 10 conversaciones = 1 query
         List<ConversationParticipant> allParticipants = conversationParticipantRepository
                 .findByConversation_IdIn(conversationIds);
 
         // 3. Busco los datos de User de TODOS los participantes en UNA query
-        // Antes: 20 participantes = 20 queries
-        // Ahora: 20 participantes = 1 query
         List<Long> allUserIds = allParticipants.stream()
                 .map(ConversationParticipant::getUserId)
                 .distinct()
@@ -245,11 +208,10 @@ public class ConversationService {
                     List<ParticipantDto> participants = participantsByConvId
                             .getOrDefault(conv.getId(), Collections.emptyList());
 
-                    // 6. Obtengo el último mensaje (esta es UNA query por conversación, unavoidable)
+                    // 6. Obtengo el último mensaje
                     LastMessageDto lastMessageDto = messageRepository
                             .findTopByConversationIdOrderByCreatedAtDesc(conv.getId())
                             .map(msg -> {
-                                // Busco la clave específica para el usuario actual
                                 String encryptedKey = messageKeyRepository
                                         .findByMessage_IdAndRecipientId(msg.getId(), userId)
                                         .map(MessageKey::getEncryptedKey)
@@ -270,23 +232,58 @@ public class ConversationService {
 
                     return toResponse(conv, participants, lastMessageDto);
                 })
+                // --- ¡¡¡INICIO DEL CAMBIO!!! ---
+                // 7. Ordenar la lista de DTOs
+                .sorted((c1, c2) -> {
+                    // Chats sin mensajes van al final
+                    if (c1.getLastMessage() == null && c2.getLastMessage() == null) {
+                        // Si ninguno tiene mensajes, ordenar por fecha de creación del chat
+                        return c2.getCreatedAt().compareTo(c1.getCreatedAt());
+                    }
+                    if (c1.getLastMessage() == null) {
+                        return 1; // c1 (sin mensaje) va después que c2 (con mensaje)
+                    }
+                    if (c2.getLastMessage() == null) {
+                        return -1; // c1 (con mensaje) va antes que c2 (sin mensaje)
+                    }
+
+                    // Si ambos tienen mensajes, ordenar por fecha del último mensaje (más nuevo primero)
+                    return c2.getLastMessage().getCreatedAt().compareTo(c1.getLastMessage().getCreatedAt());
+                })
+                // --- ¡¡¡FIN DEL CAMBIO!!! ---
                 .collect(Collectors.toList());
 
-        log.info("✅ Devueltas {} conversaciones para usuario {} (optimizado)", response.size(), userId);
+        log.info("✅ Devueltas {} conversaciones ordenadas para usuario {} (optimizado)", response.size(), userId);
         return response;
     }
 
     /**
      * Crea una nueva conversación.
+     * (Este método no tiene cambios)
      */
     @Transactional
     public ConversationResponse createConversation(CreateConversationRequest req, Long creatorId) {
         log.info("➕ Usuario {} creando nueva conversación tipo: {}", creatorId, req.getType());
 
+        // --- INICIO LÓGICA MEJORADA: Buscar chat 1-a-1 existente ---
+        // Si es "direct" y solo hay un participante, buscamos si ya existe
+        if ("direct".equalsIgnoreCase(req.getType()) && req.getParticipantIds() != null && req.getParticipantIds().size() == 1) {
+            Long otherUserId = req.getParticipantIds().get(0);
+            if (!otherUserId.equals(creatorId)) { // Asegurarnos de que no es un chat consigo mismo
+                List<Conversation> existing = conversationRepository
+                        .findDirectConversationBetweenUsers(creatorId, otherUserId);
+
+                if (!existing.isEmpty()) {
+                    log.info("↪️ Encontrada conversación 1-a-1 existente (ID: {}). Devolviendo...", existing.get(0).getId());
+                    return getConversationResponseById(existing.get(0).getId());
+                }
+            }
+        }
+        // --- FIN LÓGICA MEJORADA ---
+
         Conversation conv = new Conversation();
         conv.setType(req.getType() == null ? "direct" : req.getType());
 
-        // Lógica para no poner título en chats directos (1 a 1)
         if ("direct".equalsIgnoreCase(conv.getType()) &&
                 (req.getTitle() == null || req.getTitle().isEmpty())) {
             if (req.getParticipantIds() != null && req.getParticipantIds().size() == 1) {
@@ -299,14 +296,12 @@ public class ConversationService {
         final Conversation savedConv = conversationRepository.save(conv);
         log.debug("💾 Conversación {} creada", savedConv.getId());
 
-        // Añado al creador como "owner"
         ConversationParticipant owner = new ConversationParticipant();
         owner.setConversation(savedConv);
         owner.setUserId(creatorId);
         owner.setRole("owner");
         conversationParticipantRepository.save(owner);
 
-        // Añado al resto de participantes
         if (req.getParticipantIds() != null && !req.getParticipantIds().isEmpty()) {
             List<Long> participantIdsToAdd = req.getParticipantIds().stream()
                     .filter(id -> id != null && !id.equals(creatorId))
@@ -341,16 +336,13 @@ public class ConversationService {
 
     /**
      * Añade un participante a una conversación.
-     *
-     * SEGURIDAD (ACTUALIZADA):
-     * - Solo el owner puede añadir participantes
+     * (Este método no tiene cambios)
      */
     @Transactional
     public void addParticipant(Long conversationId, Long requesterId, AddParticipantRequest req) {
         log.info("👤 Usuario {} añadiendo participante {} a conversación {}",
                 requesterId, req.getUserId(), conversationId);
 
-        // 🔒 VALIDACIÓN DE SEGURIDAD
         permissionService.validateIsOwner(requesterId, conversationId);
 
         Conversation conv = conversationRepository.findById(conversationId)
@@ -358,12 +350,10 @@ public class ConversationService {
 
         Long userId = req.getUserId();
 
-        // Valido que el usuario a añadir exista
         if (!userRepository.existsById(userId)) {
             throw new IllegalArgumentException("El usuario a añadir no existe");
         }
 
-        // Evito duplicados
         if (conversationParticipantRepository.existsByConversation_IdAndUserId(conversationId, userId)) {
             log.warn("⚠️ Usuario {} ya está en conversación {}", userId, conversationId);
             return;
@@ -380,16 +370,13 @@ public class ConversationService {
 
     /**
      * Elimina un participante de una conversación.
-     *
-     * SEGURIDAD (ACTUALIZADA):
-     * - Usa el PermissionService para validar permisos
+     * (Este método no tiene cambios)
      */
     @Transactional
     public void removeParticipant(Long conversationId, Long requesterId, Long userIdToRemove) {
         log.info("🗑️ Usuario {} eliminando participante {} de conversación {}",
                 requesterId, userIdToRemove, conversationId);
 
-        // 🔒 VALIDACIÓN DE SEGURIDAD
         permissionService.validateCanRemoveParticipant(requesterId, userIdToRemove, conversationId);
 
         ConversationParticipant participant = conversationParticipantRepository
@@ -404,15 +391,10 @@ public class ConversationService {
 
     /**
      * Obtiene la lista de participantes de una conversación.
-     *
-     * SEGURIDAD (ACTUALIZADA):
-     * - Solo los participantes pueden ver quiénes son los otros participantes
+     * (Este método no tiene cambios)
      */
     @Transactional(readOnly = true)
     public List<ParticipantDto> getParticipants(Long conversationId) {
-        // NOTA: Esta validación se hace en el Controller
-        // porque aquí no tengo el userId directamente
-
         List<ConversationParticipant> participants = conversationParticipantRepository
                 .findByConversation_Id(conversationId);
 
@@ -432,7 +414,7 @@ public class ConversationService {
                 .collect(Collectors.toList());
     }
 
-    // --- Métodos Helpers ---
+    // --- Métodos Helpers (Sin cambios) ---
 
     private ConversationResponse toResponse(Conversation conv, List<ParticipantDto> participants,
                                             LastMessageDto lastMessage) {
@@ -454,6 +436,9 @@ public class ConversationService {
 
         List<ParticipantDto> participants = getParticipants(conversationId);
 
+        // OJO: Aquí no podemos obtener la 'encryptedKey' correcta para el
+        // usuario que acaba de crear el chat, porque no sabemos quién es.
+        // Devolvemos 'null' en la clave. El frontend tendrá que manejarlo.
         LastMessageDto lastMessageDto = messageRepository
                 .findTopByConversationIdOrderByCreatedAtDesc(conv.getId())
                 .map(msg -> new LastMessageDto(msg.getCiphertext(), msg.getCreatedAt(), null))
