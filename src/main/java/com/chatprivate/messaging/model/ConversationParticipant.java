@@ -5,10 +5,6 @@ import java.time.Instant;
 
 /**
  * Entidad JPA para la tabla 'conversation_participants'.
- *
- * ACTUALIZADO EN SESIÓN 3:
- * - Añadidos índices para optimizar validaciones de permisos
- * - Optimizado para búsquedas bidireccionales (user→convs y conv→users)
  */
 @Entity
 @Table(

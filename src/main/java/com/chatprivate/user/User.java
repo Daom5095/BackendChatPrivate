@@ -93,7 +93,7 @@ public class User {
             // Llama al constructor actualizado
             return new User(id, username, email, password,
                     kekSalt, encryptedPrivateKey, kekIv,
-                    createdAt); // createdAt ya tiene default en el constructor
+                    createdAt);
         }
     }
 }

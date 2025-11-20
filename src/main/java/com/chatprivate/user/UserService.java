@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Servicio principal para la lógica de negocio de Usuarios.
  *
- * ACTUALIZADO EN SESIÓN 2:
+ *
  * - Integrado SecurityAuditLogger para eventos de seguridad
  * - Mejorada la validación de datos
  * - Mejor manejo de errores

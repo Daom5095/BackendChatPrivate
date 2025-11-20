@@ -1,8 +1,8 @@
 package com.chatprivate.messaging.dto;
 
-import jakarta.validation.constraints.NotBlank; // Importar
-import jakarta.validation.constraints.NotEmpty; // Importar
-import jakarta.validation.constraints.NotNull; // Importar
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 
 public class SendMessageRequest {

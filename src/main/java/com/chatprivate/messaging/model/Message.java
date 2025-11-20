@@ -6,10 +6,6 @@ import java.time.Instant;
 /**
  * Entidad JPA para la tabla 'messages'.
  * Representa un único mensaje cifrado enviado en una conversación.
- *
- * ACTUALIZADO EN SESIÓN 3:
- * - Documentados índices con @Table y @Index
- * - Optimizado para queries frecuentes
  */
 @Entity
 @Table(

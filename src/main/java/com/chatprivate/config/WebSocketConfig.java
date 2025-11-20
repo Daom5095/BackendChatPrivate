@@ -75,7 +75,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     }
 
     /**
-     * Opcional: Ajusto límites de transporte.
+     *  Ajusto límites de transporte.
      */
     @Override
     public void configureWebSocketTransport(WebSocketTransportRegistration registration) {
@@ -83,15 +83,4 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registration.setSendTimeLimit(15 * 1000).setSendBufferSizeLimit(512 * 1024);
     }
 
-    // --- MÉTODO ELIMINADO ---
-    // Al eliminar este método, Spring Boot inyectará
-    // el SimpMessagingTemplate autoconfigurado y correcto
-    // en tu MessageService.
-    /*
-    @Bean
-    public SimpMessagingTemplate simpMessagingTemplate(MessageChannel clientOutboundChannel) {
-        return new SimpMessagingTemplate(clientOutboundChannel);
-    }
-    */
-    // --- FIN MÉTODO ELIMINADO ---
 }

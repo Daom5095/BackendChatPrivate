@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 /**
  * Controlador REST para autenticación (registro y login).
  *
- * ACTUALIZADO EN SESIÓN 2:
+ *
  * - Añadido rate limiting en login y registro
  * - Protección contra fuerza bruta y spam
  * - Logging mejorado de eventos de seguridad
@@ -28,8 +28,7 @@ public class AuthController {
 
     private final UserService userService;
     private final RateLimitService rateLimitService;
-    private final SecurityAuditLogger auditLogger; // <-- NUEVO
-
+    private final SecurityAuditLogger auditLogger;
     /**
      * Endpoint de registro de nuevos usuarios.
      *
@@ -51,12 +50,12 @@ public class AuthController {
         String clientIp = getClientIP(httpRequest);
         log.info("📝 Intento de registro desde IP: {}", clientIp);
 
-        // 🔒 RATE LIMITING
+        // RATE LIMITING
         // Verifico si el cliente ha excedido el límite de registros
         if (!rateLimitService.tryConsumeRegister(clientIp)) {
             long remaining = rateLimitService.getRemainingRegisterAttempts(clientIp);
 
-            log.warn("🚨 REGISTRO BLOQUEADO: IP {} ha excedido el límite (intentos restantes: {})",
+            log.warn(" REGISTRO BLOQUEADO: IP {} ha excedido el límite (intentos restantes: {})",
                     clientIp, remaining);
 
             throw new RateLimitExceededException(
@@ -67,11 +66,11 @@ public class AuthController {
         }
 
         // Si pasa el rate limit, procedo con el registro normal
-        log.debug("✅ Rate limit OK para registro desde IP: {}", clientIp);
+        log.debug(" Rate limit OK para registro desde IP: {}", clientIp);
 
         AuthResponse response = userService.register(request);
 
-        log.info("✅ Registro exitoso para usuario: {}", request.getUsername());
+        log.info(" Registro exitoso para usuario: {}", request.getUsername());
 
         return ResponseEntity.ok(response);
     }
@@ -95,14 +94,14 @@ public class AuthController {
 
         // Obtengo la IP del cliente
         String clientIp = getClientIP(httpRequest);
-        log.info("🔐 Intento de login desde IP: {} para usuario: {}", clientIp, request.getUsername());
+        log.info(" Intento de login desde IP: {} para usuario: {}", clientIp, request.getUsername());
 
-        // 🔒 RATE LIMITING
+        //  RATE LIMITING
         // Verifico si el cliente ha excedido el límite de intentos de login
         if (!rateLimitService.tryConsumeLogin(clientIp)) {
             long remaining = rateLimitService.getRemainingLoginAttempts(clientIp);
 
-            log.warn("🚨 LOGIN BLOQUEADO: IP {} ha excedido el límite (intentos restantes: {})",
+            log.warn("LOGIN BLOQUEADO: IP {} ha excedido el límite (intentos restantes: {})",
                     clientIp, remaining);
 
             throw new RateLimitExceededException(
@@ -113,11 +112,11 @@ public class AuthController {
         }
 
         // Si pasa el rate limit, procedo con el login normal
-        log.debug("✅ Rate limit OK para login desde IP: {}", clientIp);
+        log.debug("Rate limit OK para login desde IP: {}", clientIp);
 
         AuthResponse response = userService.login(request);
 
-        log.info("✅ Login exitoso para usuario: {}", request.getUsername());
+        log.info("Login exitoso para usuario: {}", request.getUsername());
 
         return ResponseEntity.ok(response);
     }

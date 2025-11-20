@@ -15,12 +15,7 @@ import java.util.Map;
 /**
  * Manejador global de excepciones para WebSocket/STOMP.
  *
- * PROBLEMA QUE RESUELVE:
- * Cuando ocurre un error en un mensaje WebSocket (ej. el usuario no es
- * participante de un chat), el error se tragaba silenciosamente y el
- * cliente no recibía ningún feedback.
- *
- * SOLUCIÓN:
+
  * Este handler captura las excepciones y envía un mensaje de error
  * al cliente a través del canal "/queue/errors".
  *
@@ -49,7 +44,7 @@ public class WebSocketExceptionHandler {
     public Map<String, Object> handleAccessDenied(AccessDeniedException exception, Principal principal) {
         String username = (principal != null) ? principal.getName() : "unknown";
 
-        log.warn("🚨 WebSocket - Acceso denegado para usuario {}: {}", username, exception.getMessage());
+        log.warn("WebSocket - Acceso denegado para usuario {}: {}", username, exception.getMessage());
 
         Map<String, Object> errorResponse = new HashMap<>();
         errorResponse.put("type", "ACCESS_DENIED");
@@ -97,7 +92,7 @@ public class WebSocketExceptionHandler {
         String username = (principal != null) ? principal.getName() : "unknown";
 
         // Este es un error inesperado, lo logueo como ERROR con stack trace
-        log.error("💥 WebSocket - Error inesperado de usuario {}: {}",
+        log.error("WebSocket - Error inesperado de usuario {}: {}",
                 username, exception.getMessage(), exception);
 
         Map<String, Object> errorResponse = new HashMap<>();

@@ -11,11 +11,7 @@ import java.util.Map;
 
 /**
  * DTO para mensajes enviados por WebSocket/STOMP.
- *
- * ACTUALIZADO EN SESIÓN 2:
- * - Añadidas validaciones de campos
- * - Límites de tamaño para prevenir ataques DoS
- *
+
  * Este objeto representa un mensaje cifrado que el cliente
  * envía a través de WebSocket.
  */

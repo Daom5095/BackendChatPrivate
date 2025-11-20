@@ -100,9 +100,9 @@ public class RateLimitService {
 
         if (!consumed) {
             // Rate limit excedido
-            log.warn("🚨 RATE LIMIT EXCEDIDO (LOGIN): IP {} ha superado el límite de intentos", identifier);
+            log.warn(" RATE LIMIT EXCEDIDO (LOGIN): IP {} ha superado el límite de intentos", identifier);
         } else {
-            log.debug("✅ Token de login consumido para IP: {} (tokens restantes: {})",
+            log.debug(" Token de login consumido para IP: {} (tokens restantes: {})",
                     identifier, bucket.getAvailableTokens());
         }
 
@@ -120,9 +120,9 @@ public class RateLimitService {
         boolean consumed = bucket.tryConsume(1);
 
         if (!consumed) {
-            log.warn("🚨 RATE LIMIT EXCEDIDO (REGISTRO): IP {} ha superado el límite de registros", identifier);
+            log.warn(" RATE LIMIT EXCEDIDO (REGISTRO): IP {} ha superado el límite de registros", identifier);
         } else {
-            log.debug("✅ Token de registro consumido para IP: {} (tokens restantes: {})",
+            log.debug(" Token de registro consumido para IP: {} (tokens restantes: {})",
                     identifier, bucket.getAvailableTokens());
         }
 
@@ -155,13 +155,11 @@ public class RateLimitService {
      * Por ahora, lo dejamos simple para desarrollo.
      */
     public void cleanupOldBuckets() {
-        // --- INICIO DE LA MODIFICACIÓN ---
         // Para los tests, implementamos una limpieza completa
         loginBuckets.clear();
         registerBuckets.clear();
 
-        log.debug("🧹 Limpieza COMPLETA de buckets (para tests): {} login, {} registro",
+        log.debug(" Limpieza COMPLETA de buckets (para tests): {} login, {} registro",
                 loginBuckets.size(), registerBuckets.size());
-        // --- FIN DE LA MODIFICACIÓN ---
     }
 }

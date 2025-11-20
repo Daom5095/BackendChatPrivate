@@ -13,12 +13,6 @@ import org.springframework.stereotype.Service;
  * que requieren permisos específicos (leer mensajes, enviar mensajes, etc.)
  * pasan primero por aquí.
  *
- * VENTAJAS de centralizar las validaciones:
- * 1. Evito repetir código en múltiples servicios
- * 2. Es más fácil mantener y actualizar la lógica de seguridad
- * 3. Puedo cambiar las reglas de permisos en un solo lugar
- * 4. Los logs de seguridad están centralizados
- *
  * IMPORTANTE: Todos los métodos lanzan AccessDeniedException si el
  * usuario NO tiene permiso. Estas excepciones son manejadas por mi
  * GlobalExceptionHandler.
@@ -52,7 +46,7 @@ public class PermissionService {
         if (!isParticipant) {
             // ¡ACCESO DENEGADO!
             // Logueo el intento (esto es importante para auditoría de seguridad)
-            log.warn("🚨 INTENTO DE ACCESO NO AUTORIZADO: Usuario {} intentó acceder a conversación {} sin ser participante",
+            log.warn("INTENTO DE ACCESO NO AUTORIZADO: Usuario {} intentó acceder a conversación {} sin ser participante",
                     userId, conversationId);
 
             // Lanzo la excepción que mi GlobalExceptionHandler convertirá en un 403 Forbidden
@@ -62,7 +56,7 @@ public class PermissionService {
         }
 
         // Si llego aquí, todo está OK
-        log.debug("✅ Validación exitosa: Usuario {} es participante de conversación {}",
+        log.debug("Validación exitosa: Usuario {} es participante de conversación {}",
                 userId, conversationId);
     }
 
@@ -95,7 +89,7 @@ public class PermissionService {
             );
         }
 
-        log.debug("✅ Validación exitosa: Usuario {} es owner de conversación {}",
+        log.debug(" Validación exitosa: Usuario {} es owner de conversación {}",
                 userId, conversationId);
     }
 
@@ -124,20 +118,20 @@ public class PermissionService {
 
         // CASO 1: El owner puede eliminar a cualquiera
         if ("owner".equalsIgnoreCase(requesterRole)) {
-            log.debug("✅ Usuario {} (owner) puede eliminar al usuario {} de conversación {}",
+            log.debug(" Usuario {} (owner) puede eliminar al usuario {} de conversación {}",
                     requesterId, targetUserId, conversationId);
-            return; // OK
+            return;
         }
 
         // CASO 2: Un member solo puede eliminarse a sí mismo
         if (requesterId.equals(targetUserId)) {
-            log.debug("✅ Usuario {} puede eliminarse a sí mismo de conversación {}",
+            log.debug(" Usuario {} puede eliminarse a sí mismo de conversación {}",
                     requesterId, conversationId);
             return; // OK (abandonar el chat)
         }
 
         // CASO 3: Un member intenta eliminar a otro → ¡DENEGADO!
-        log.warn("🚨 INTENTO DE ELIMINACIÓN NO AUTORIZADA: Usuario {} (role: {}) intentó eliminar al usuario {} de conversación {}",
+        log.warn(" INTENTO DE ELIMINACIÓN NO AUTORIZADA: Usuario {} (role: {}) intentó eliminar al usuario {} de conversación {}",
                 requesterId, requesterRole, targetUserId, conversationId);
 
         throw new AccessDeniedException(

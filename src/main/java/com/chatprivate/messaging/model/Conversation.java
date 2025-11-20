@@ -27,7 +27,7 @@ public class Conversation {
 
     public Conversation() {}
 
-    // Constructor para facilitar la creación en MessageService
+
     public Conversation(Long id) {
         this.id = id;
     }

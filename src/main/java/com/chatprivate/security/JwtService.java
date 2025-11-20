@@ -15,13 +15,7 @@ import java.util.Date;
 
 /**
  * Servicio encargado de todas las operaciones de JSON Web Tokens (JWT).
- *
- * ACTUALIZADO para JJWT 0.12.6:
- * - Cambié parserBuilder() por parser()
- * - Cambié setSigningKey() por verifyWith()
- * - Cambié SignatureAlgorithm por Jwts.SIG
- * - Cambié el tipo de retorno de getSigningKey() de Key a SecretKey
- *
+
  * Funciones principales:
  * - Generar tokens JWT firmados
  * - Validar tokens (firma + expiración + usuario)

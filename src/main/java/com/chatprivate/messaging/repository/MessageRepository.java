@@ -14,10 +14,6 @@ import java.util.Optional;
 
 /**
  * Repositorio para operaciones de BD sobre Mensajes.
- *
- * ACTUALIZADO EN SESIÓN 3 - PARTE B:
- * - Añadida paginación para historial de mensajes
- * - Queries optimizadas con los índices de V2
  */
 @Repository
 public interface MessageRepository extends JpaRepository<Message, Long> {

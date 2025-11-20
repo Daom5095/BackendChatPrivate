@@ -4,8 +4,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-// Usaremos @Getter, @Setter, @NoArgsConstructor en lugar de @Data
-// para tener más control y evitar problemas potenciales con constructores generados
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -17,7 +16,6 @@ public class AuthResponse {
     private String kekIv;
     // -------------------------------------------------
 
-    // Constructor manual para el builder (incluye TODOS los campos)
     public AuthResponse(String token, String kekSalt, String encryptedPrivateKey, String kekIv) {
         this.token = token;
         this.kekSalt = kekSalt;

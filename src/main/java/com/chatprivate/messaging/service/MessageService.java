@@ -23,11 +23,6 @@ import java.util.stream.Collectors;
 /**
  * Servicio central para el envío y almacenamiento de mensajes.
  *
- * ACTUALIZADO EN SESIÓN 2:
- * - Añadida validación de permisos (el sender DEBE ser participante)
- * - Mejorado el logging de seguridad
- * - Validación del mapa de claves cifradas
- *
  * Este servicio es llamado por el StompChatController cuando
  * un mensaje llega por WebSocket.
  */
@@ -102,7 +97,7 @@ public class MessageService {
         // VALIDACIÓN #2: El mapa de claves NO puede estar vacío
         // Esto es crucial para E2EE: cada destinatario necesita su clave
         if (encryptedKeys == null || encryptedKeys.isEmpty()) {
-            log.error("❌ Error de validación: Mapa de claves vacío para mensaje en conversación {}", conversationId);
+            log.error(" Error de validación: Mapa de claves vacío para mensaje en conversación {}", conversationId);
             throw new IllegalArgumentException(
                     "El mapa de claves cifradas no puede estar vacío. " +
                             "Cada destinatario debe tener una clave para descifrar el mensaje."
@@ -110,7 +105,7 @@ public class MessageService {
         }
 
         // ============================================
-        // 💾 GUARDADO DEL MENSAJE
+        // GUARDADO DEL MENSAJE
         // ============================================
 
         // 1. Guardo el mensaje principal (el ciphertext)
@@ -123,10 +118,10 @@ public class MessageService {
         message.setCiphertext(ciphertext);
 
         message = messageRepository.save(message);
-        log.debug("💾 Mensaje {} guardado en BD para conversación {}", message.getId(), conversationId);
+        log.debug(" Mensaje {} guardado en BD para conversación {}", message.getId(), conversationId);
 
         // ============================================
-        // 🔐 GUARDADO DE CLAVES Y ENVÍO POR WEBSOCKET
+        //  GUARDADO DE CLAVES Y ENVÍO POR WEBSOCKET
         // ============================================
 
         // 2. Convierto los IDs de String a Long (las claves del mapa vienen como String desde JSON)
@@ -151,7 +146,7 @@ public class MessageService {
 
             // Valido que el destinatario exista en mi BD
             if (recipientUsername == null) {
-                log.warn("⚠️ Destinatario con ID {} no encontrado en la BD. Saltando...", recipientId);
+                log.warn(" Destinatario con ID {} no encontrado en la BD. Saltando...", recipientId);
                 continue; // Paso al siguiente destinatario
             }
 
@@ -160,7 +155,7 @@ public class MessageService {
             try {
                 permissionService.validateIsParticipant(recipientId, conversationId);
             } catch (Exception e) {
-                log.warn("🚨 INTENTO SOSPECHOSO: El mensaje incluye una clave para el usuario {} " +
+                log.warn(" INTENTO SOSPECHOSO: El mensaje incluye una clave para el usuario {} " +
                                 "que NO es participante de la conversación {}. Ignorando.",
                         recipientId, conversationId);
                 continue; // No guardo la clave ni envío el mensaje
@@ -172,7 +167,7 @@ public class MessageService {
             mk.setRecipientId(recipientId);
             mk.setEncryptedKey(encryptedKeyForRecipient);
             messageKeyRepository.save(mk);
-            log.debug("🔑 Clave guardada para mensaje {} y destinatario {}", message.getId(), recipientId);
+            log.debug(" Clave guardada para mensaje {} y destinatario {}", message.getId(), recipientId);
 
             // 4b. Preparo el payload para STOMP
             StompMessagePayload payload = new StompMessagePayload();
@@ -187,7 +182,7 @@ public class MessageService {
 
             if (user != null && user.hasSessions()) {
                 // ¡El destinatario está online! Envío el mensaje en tiempo real
-                log.info("📤 Enviando mensaje a usuario online: {} (ID: {})", recipientUsername, recipientId);
+                log.info(" Enviando mensaje a usuario online: {} (ID: {})", recipientUsername, recipientId);
 
                 simpMessagingTemplate.convertAndSendToUser(
                         recipientUsername,
@@ -195,7 +190,7 @@ public class MessageService {
                         payload
                 );
 
-                log.debug("✅ Mensaje entregado exitosamente a {}", recipientUsername);
+                log.debug(" Mensaje entregado exitosamente a {}", recipientUsername);
             } else {
                 // El destinatario está offline
                 // El mensaje YA está guardado en la BD, lo recibirá cuando pida el historial
@@ -203,6 +198,6 @@ public class MessageService {
             }
         }
 
-        log.info("✅ Procesamiento de mensaje completado para conversación {}", conversationId);
+        log.info(" Procesamiento de mensaje completado para conversación {}", conversationId);
     }
 }

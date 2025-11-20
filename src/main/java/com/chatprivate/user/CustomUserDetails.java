@@ -19,11 +19,10 @@ public class CustomUserDetails implements UserDetails {
 
 
     /**
-     * Sobrescribe el método toString() para que siempre devuelva el nombre de usuario.
+     * Sobrescribo el método toString() para que siempre devuelva el nombre de usuario.
      * Esto es crucial porque algunos componentes de Spring STOMP (como el UserRegistry)
      * usan toString() en lugar de getName() para identificar al 'Principal' de la sesión.
      *
-     * ESTA CORRECCIÓN ARREGLA EL BUG DONDE LOS RECEPTORES NO RECIBEN MENSAJES EN TIEMPO REAL.
      */
     @Override
     public String toString() {

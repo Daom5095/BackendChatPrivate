@@ -19,7 +19,6 @@ import java.util.List;
 /**
  * Controlador REST para operaciones de conversaciones.
  *
- * ACTUALIZADO EN SESIÓN 2:
  * - Integrado PermissionService
  * - Validaciones de seguridad en todos los endpoints
  */
@@ -31,7 +30,7 @@ public class ConversationController {
 
     private final ConversationService conversationService;
     private final UserRepository userRepository;
-    private final PermissionService permissionService; // <-- NUEVO
+    private final PermissionService permissionService;
 
     /**
      * Crea una nueva conversación.
@@ -125,7 +124,7 @@ public class ConversationController {
 
         Long userId = user.getId();
 
-        // 🔒 VALIDACIÓN DE SEGURIDAD
+        //VALIDACIÓN DE SEGURIDAD
         // Solo los participantes pueden ver quiénes son los otros participantes
         permissionService.validateIsParticipant(userId, conversationId);
 
@@ -155,7 +154,7 @@ public class ConversationController {
     /**
      * Obtiene el historial de mensajes CON PAGINACIÓN.
      *
-     * ¡NUEVO EN SESIÓN 3!
+     *
      *
      * USO:
      * GET /api/conversations/5/messages/paged?page=0&size=50

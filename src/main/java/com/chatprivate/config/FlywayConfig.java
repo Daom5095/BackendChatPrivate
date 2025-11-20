@@ -18,13 +18,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class FlywayConfig {
 
-    /**
-     * Estrategia de migración personalizada.
-     *
-     * Esta estrategia se ejecuta ANTES de las migraciones normales.
-     * Verifica si existe la tabla de historial de Flyway, y si no existe,
-     * crea un baseline automáticamente.
-     */
     @Bean
     public FlywayMigrationStrategy flywayMigrationStrategy() {
         return flyway -> {

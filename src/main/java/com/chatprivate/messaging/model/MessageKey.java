@@ -4,10 +4,6 @@ import jakarta.persistence.*;
 
 /**
  * Entidad JPA para la tabla 'message_keys'.
- *
- * ACTUALIZADO EN SESIÓN 3:
- * - Añadido índice compuesto (message_id, recipient_id)
- * - Optimizado para búsquedas de claves específicas
  */
 @Entity
 @Table(

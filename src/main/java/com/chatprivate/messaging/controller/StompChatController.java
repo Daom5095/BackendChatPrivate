@@ -14,8 +14,6 @@ import org.springframework.stereotype.Controller;
 /**
  * Controlador STOMP para mensajes de chat en tiempo real.
  *
- * ACTUALIZADO EN SESIÓN 2:
- * - Añadida validación del payload con @Valid
  * - Mejor manejo de errores (delegado a WebSocketExceptionHandler)
  * - Logging mejorado
  */
@@ -47,7 +45,7 @@ public class StompChatController {
         // ============================================
 
         if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails)) {
-            log.error("❌ Error crítico: No se pudo obtener CustomUserDetails de la autenticación en WebSocket");
+            log.error("Error crítico: No se pudo obtener CustomUserDetails de la autenticación en WebSocket");
             // Lanzo excepción que será manejada por WebSocketExceptionHandler
             throw new IllegalStateException("Sesión de autenticación inválida");
         }

@@ -33,7 +33,7 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
-    private final Environment env; // Para leer `application.yml`
+    private final Environment env;
 
     public SecurityConfig(JwtAuthFilter jwtAuthFilter,
                           UserDetailsService userDetailsService,
@@ -67,7 +67,7 @@ public class SecurityConfig {
 
     /**
      * Expongo el AuthenticationManager como un Bean.
-     * Lo necesitaré en mi UserService (aunque ahora lo uso implícitamente).
+     *
      */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {

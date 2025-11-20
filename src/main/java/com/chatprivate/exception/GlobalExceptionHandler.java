@@ -15,11 +15,6 @@ import java.util.stream.Collectors;
 
 /**
  * Controlador global de excepciones.
- *
- * ACTUALIZADO EN SESIÓN 2:
- * - Añadido manejo de RateLimitExceededException (HTTP 429)
- * - Mejorado el logging de eventos de seguridad
- *
  * Este componente centraliza el manejo de errores de TODA la API REST.
  * Cada tipo de excepción se convierte en una respuesta HTTP apropiada.
  */
@@ -41,7 +36,7 @@ public class GlobalExceptionHandler {
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining(", "));
 
-        log.warn("⚠️ Error de validación en {}: {}", request.getRequestURI(), errorMessage);
+        log.warn(" Error de validación en {}: {}", request.getRequestURI(), errorMessage);
 
         ErrorResponseDto errorDto = new ErrorResponseDto(
                 HttpStatus.BAD_REQUEST.value(),
@@ -81,7 +76,7 @@ public class GlobalExceptionHandler {
             BadCredentialsException ex,
             HttpServletRequest request) {
 
-        log.warn("🔐 Intento de login fallido en {}: {}", request.getRequestURI(), ex.getMessage());
+        log.warn("Intento de login fallido en {}: {}", request.getRequestURI(), ex.getMessage());
 
         ErrorResponseDto errorDto = new ErrorResponseDto(
                 HttpStatus.UNAUTHORIZED.value(),
@@ -122,7 +117,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
 
         // Este es un evento de seguridad importante, lo logueo como WARNING
-        log.warn("🚨 Acceso denegado en {}: {}", request.getRequestURI(), ex.getMessage());
+        log.warn("Acceso denegado en {}: {}", request.getRequestURI(), ex.getMessage());
 
         ErrorResponseDto errorDto = new ErrorResponseDto(
                 HttpStatus.FORBIDDEN.value(),
@@ -145,10 +140,10 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
 
         // Este es un evento de seguridad crítico (posible ataque)
-        log.warn("🚨 RATE LIMIT EXCEDIDO en {}: {}", request.getRequestURI(), ex.getMessage());
+        log.warn("RATE LIMIT EXCEDIDO en {}: {}", request.getRequestURI(), ex.getMessage());
 
         ErrorResponseDto errorDto = new ErrorResponseDto(
-                HttpStatus.TOO_MANY_REQUESTS.value(), // 429
+                HttpStatus.TOO_MANY_REQUESTS.value(),
                 ex.getMessage(),
                 request.getRequestURI()
         );
@@ -166,7 +161,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
 
         // Este es un error inesperado, lo logueo como ERROR con el stack trace completo
-        log.error("💥 Error interno inesperado en {}: {}",
+        log.error("Error interno inesperado en {}: {}",
                 request.getRequestURI(), ex.getMessage(), ex);
 
         ErrorResponseDto errorDto = new ErrorResponseDto(
