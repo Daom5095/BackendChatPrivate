@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <suppress>
+        <notes><![CDATA[
+        Falso positivo confirmado: el artefacto es Spring Boot DevTools 4.1.2.
+        CVE-2022-31691 afecta a editores YAML de Spring Tools para Eclipse/VS Code,
+        no al artefacto org.springframework.boot:spring-boot-devtools.
+        El HTML identificó incorrectamente el CPE vmware:spring_tools:4.1.2.
+        ]]></notes>
+        <sha1>121a626b96727194fd5cc2eb6be49026e9727b24</sha1>
+        <cve>CVE-2022-31691</cve>
+    </suppress>
+</suppressions>

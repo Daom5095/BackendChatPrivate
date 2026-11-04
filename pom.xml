@@ -11,9 +11,8 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <!-- ACTUALIZADO: De 3.2.5 a 3.4.1 (noviembre 2024) -->
-        <!-- Incluye parches de seguridad y mejoras de rendimiento -->
-        <version>3.4.1</version>
+        <!-- Spring Boot 4.1.2: versiones coordinadas para Framework, Security y Spring Data -->
+        <version>4.1.2</version>
         <relativePath/>
     </parent>
 
@@ -38,7 +37,7 @@
         <lombok.version>1.18.34</lombok.version>
 
         <!-- ACTUALIZADO: MySQL Connector (la 9.x es compatible con MySQL 8.x) -->
-        <mysql.version>9.1.0</mysql.version>
+        <mysql.version>9.4.0</mysql.version>
 
         <!-- ACTUALIZADO: JWT (jjwt) a la última versión estable -->
         <jjwt.version>0.12.6</jjwt.version>
@@ -46,6 +45,7 @@
         <!-- Encoding UTF-8 para evitar problemas con caracteres especiales -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <log4j2.version>2.25.5</log4j2.version>
     </properties>
 
     <!-- ============================================ -->
@@ -72,7 +72,7 @@
         <!-- Spring Web para crear mi API REST -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
 
         <!-- WebSocket para chat en tiempo real -->
@@ -156,10 +156,24 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Tests específicos para Spring Security -->
+        <!-- Infraestructura de pruebas específica de Spring Security en Boot 4 -->
         <dependency>
-            <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-test</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Infraestructura de pruebas para Spring MVC -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Infraestructura de pruebas para Spring Data JPA -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa-test</artifactId>
             <scope>test</scope>
         </dependency>
 
@@ -183,11 +197,10 @@
             <version>8.10.1</version>
         </dependency>
 
-        <!-- FLYWAY: Migraciones de Base de Datos Versionadas -->
-        <!-- Controla y versiona los cambios en el schema de la BD -->
+        <!-- Starter de Flyway requerido para la autoconfiguración de Spring Boot 4 -->
         <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
         </dependency>
 
         <!-- Flyway MySQL (requerido para MySQL 8) -->
@@ -201,6 +214,11 @@
             <artifactId>h2</artifactId>
             <scope>test</scope>
 
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-jackson2</artifactId>
         </dependency>
 
     </dependencies>
@@ -245,6 +263,8 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+
+
                 </configuration>
             </plugin>
 
@@ -269,6 +289,16 @@
                 </executions>
             </plugin>
 
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>12.2.2</version>
+                <configuration>
+                    <suppressionFiles>
+                        <suppressionFile>${project.basedir}/dependency-check-suppressions.xml</suppressionFile>
+                    </suppressionFiles>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

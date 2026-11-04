@@ -13,17 +13,23 @@
 # ============================================
 server:
   port: ${SERVER_PORT:8080}
-  error:
-    include-stacktrace: never
-    include-message: always
-
 # ============================================
 # SPRING FRAMEWORK
 # ============================================
 spring:
+  # Carga secretos locales desde .env (archivo ignorado por Git). En otros
+  # entornos, Spring también acepta variables de entorno del sistema.
+  config:
+    import: optional:file:.env[.properties]
+
   application:
     name: chatPrivate
 
+
+  web:
+    error:
+      include-stacktrace: never
+      include-message: ${ERROR_INCLUDE_MESSAGE:never}
   # ============================================
   # CONFIGURACIÓN DE BASE DE DATOS
   # ============================================
@@ -31,8 +37,8 @@ spring:
     # Valores por defecto para desarrollo local
     # En producción, sobrescríbelos con variables de entorno
     url: ${DB_URL:jdbc:mysql://localhost:3306/chatPrivate?useSSL=false&serverTimezone=UTC}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:5095}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
     # HikariCP (pool de conexiones) - Configuración optimizada
@@ -58,7 +64,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.MySQL8Dialect
+
 
 # ============================================
 # CONFIGURACIÓN PERSONALIZADA DE MI APP
@@ -68,10 +74,8 @@ app:
   # JWT (JSON Web Tokens)
   # ============================================
   jwt:
-    # ⚠️ VALOR POR DEFECTO SOLO PARA DESARROLLO ⚠️
-    # En producción, SIEMPRE usa una variable de entorno con un secreto único
-    # Este valor por defecto te permite arrancar la app localmente
-    secret: ${JWT_SECRET:b49aa764aa2871f12ac13b390221b494f7d9e1e748e0a1f136b9285f82cb99e2}
+    # Debe definirse localmente en .env o como variable de entorno.
+    secret: ${JWT_SECRET}
 
     # Tiempo de expiración: 24 horas por defecto
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
@@ -100,5 +104,7 @@ logging:
 
   file:
     name: ${LOG_FILE_PATH:logs/application.log}
-    max-size: 10MB
-    max-history: 30
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 30

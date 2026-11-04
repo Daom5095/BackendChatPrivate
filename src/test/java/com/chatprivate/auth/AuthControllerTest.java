@@ -5,7 +5,7 @@ import com.chatprivate.auth.RegisterRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
@@ -17,6 +17,7 @@ import org.junit.jupiter.api.AfterEach;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+/** Aquí pruebo las rutas de registro e inicio de sesión, incluidos sus límites de intentos. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc // Configura MockMvc para simular peticiones HTTP
 @ActiveProfiles("test") // ¡MUY IMPORTANTE!
@@ -30,7 +31,7 @@ class AuthControllerTest {
     private ObjectMapper objectMapper; // Para convertir objetos Java a JSON
 
     @Autowired
-    private RateLimitService rateLimitService; // <-- ¡ESTA ERA LA LÍNEA FALTANTE!
+    private RateLimitService rateLimitService;
 
     /**
      * Este método se ejecuta DESPUÉS de CADA test en esta clase.
@@ -42,6 +43,7 @@ class AuthControllerTest {
         rateLimitService.cleanupOldBuckets();
     }
 
+    // Compruebo que el registro cree la cuenta y devuelva el token.
     @Test
     void register_ShouldCreateUser_AndReturnToken() throws Exception {
         // ARRANGE
@@ -65,6 +67,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.token").isNotEmpty()); // Verifica que la respuesta JSON tiene un token
     }
 
+    // Compruebo que se bloquee el inicio de sesión al superar los intentos fallidos.
     @Test
     void login_ShouldBeRateLimited_After5FailedAttempts() throws Exception {
         // ARRANGE
@@ -90,6 +93,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.error").value(containsString("Has excedido el límite")));
     }
 
+    // Compruebo que también se limite la cantidad de registros.
     @Test
     void register_ShouldBeRateLimited_After3SuccessfulAttempts() throws Exception {
         // ARRANGE

@@ -1,6 +1,5 @@
 package com.chatprivate.security;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,12 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-/**
- * Mi filtro personalizado que se ejecuta UNA VEZ por cada petición HTTP.
- * Su trabajo es interceptar todas las peticiones, buscar el token JWT
- * en la cabecera 'Authorization' y, si es válido, establecer
- * la autenticación en el contexto de seguridad de Spring.
- */
+/** Este filtro revisa el token JWT de cada petición antes de que llegue a las rutas protegidas. */
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 

@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
 // ... (El resto de tu clase va aquí)
 
 // ¡Importante! Usamos @SpringBootTest para un test de integración
+/** Aquí pruebo la creación de conversaciones, los permisos y la consulta del historial. */
 @SpringBootTest
 @ActiveProfiles("test") // Usa la BD H2 en memoria
 @Transactional // Limpia la BD después de cada test
@@ -111,6 +112,7 @@ class ConversationServiceTest {
         ));
     }
 
+    // Compruebo que al crear el chat también se agreguen sus participantes.
     @Test
     void createConversation_ShouldCreateChat_AndAddParticipants() {
         // ARRANGE
@@ -173,6 +175,7 @@ class ConversationServiceTest {
 
 
     // --- NUEVO TEST PARA getUserConversations ---
+    // Compruebo que la lista incluya los chats y su último mensaje.
     @Test
     void getUserConversations_ShouldReturnAllUserChats_WithLastMessage() {
         // ACT
@@ -199,6 +202,7 @@ class ConversationServiceTest {
         assertEquals("keyForA_3", chatWithC.getLastMessage().getEncryptedKey());
     }
     // --- NUEVO TEST PARA addParticipant (Caso Exitoso) ---
+    // Compruebo que el propietario pueda agregar participantes.
     @Test
     void addParticipant_ShouldWork_WhenRequesterIsOwner() {
         // ARRANGE
@@ -219,6 +223,7 @@ class ConversationServiceTest {
     }
 
     // --- NUEVO TEST PARA addParticipant (Fallo de Seguridad) ---
+    // Compruebo que un miembro no pueda agregar a otra persona.
     @Test
     void addParticipant_ShouldThrowAccessDenied_WhenRequesterIsMember() {
         // ARRANGE
@@ -235,6 +240,7 @@ class ConversationServiceTest {
     }
 
     // --- NUEVO TEST PARA removeParticipant (Fallo de Seguridad) ---
+    // Compruebo que un miembro no pueda quitar a otro miembro.
     @Test
     void removeParticipant_ShouldThrowAccessDenied_WhenMemberTriesToRemoveAnotherMember() {
         // ARRANGE
@@ -249,6 +255,7 @@ class ConversationServiceTest {
     }
 
     // --- NUEVO TEST PARA removeParticipant (Caso Exitoso: Salir del chat) ---
+    // Compruebo que un miembro pueda salir de la conversación.
     @Test
     void removeParticipant_ShouldWork_WhenMemberRemovesThemselves() {
         // ARRANGE
@@ -266,6 +273,7 @@ class ConversationServiceTest {
     }
 
     // --- NUEVO TEST PARA getMessageHistoryPaged ---
+    // Compruebo que el historial paginado incluya las claves del mensaje.
     @Test
     void getMessageHistoryPaged_ShouldReturnCorrectPage_WithKeys() {
         // ACT
@@ -299,6 +307,7 @@ class ConversationServiceTest {
         assertEquals("keyForA_2", page1.getContent().get(0).getEncryptedKey()); // Clave de userA
     }
 
+    // Compruebo que el historial completo incluya las claves del mensaje.
     @Test
     void getMessageHistory_ShouldReturnAllMessages_WithKeys() {
         // ARRANGE

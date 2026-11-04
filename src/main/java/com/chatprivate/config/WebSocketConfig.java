@@ -2,10 +2,8 @@ package com.chatprivate.config;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.messaging.MessageChannel; // <-- ESTA IMPORTACIÓN YA NO SE NECESITA
-import org.springframework.messaging.simp.SimpMessagingTemplate; // <-- ESTA IMPORTACIÓN YA NO SE NECESITA
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -13,22 +11,28 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketTransportRegistration;
+import java.util.Arrays;
+import java.util.List;
 
 
-/**
- * Configuración de mis WebSockets usando STOMP.
- * Habilito el broker de mensajería para la comunicación en tiempo real.
- */
+/** Aquí configuro el canal WebSocket y las rutas que usa el chat en tiempo real. */
 @Configuration
 @EnableWebSocketMessageBroker // Activa el servidor WebSocket
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     // Mi interceptor personalizado para autenticar conexiones WebSocket
     private final WebSocketAuthChannelInterceptor webSocketAuthChannelInterceptor;
+    private final List<String> allowedOrigins;
 
     @Autowired
-    public WebSocketConfig(WebSocketAuthChannelInterceptor webSocketAuthChannelInterceptor) {
+    public WebSocketConfig(
+            WebSocketAuthChannelInterceptor webSocketAuthChannelInterceptor,
+            @Value("${app.cors.allowed-origins}") String configuredOrigins) {
         this.webSocketAuthChannelInterceptor = webSocketAuthChannelInterceptor;
+        this.allowedOrigins = Arrays.stream(configuredOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .toList();
     }
 
     /**
@@ -63,7 +67,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*");
+                .setAllowedOrigins(allowedOrigins.toArray(String[]::new));
     }
 
     /**

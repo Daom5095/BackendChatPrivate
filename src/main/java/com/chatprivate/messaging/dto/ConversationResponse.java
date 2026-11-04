@@ -3,6 +3,7 @@ package com.chatprivate.messaging.dto;
 import java.time.Instant;
 import java.util.List;
 
+/** Este objeto contiene la información de una conversación que enviamos al cliente. */
 public class ConversationResponse {
     private Long id;
     private String type;

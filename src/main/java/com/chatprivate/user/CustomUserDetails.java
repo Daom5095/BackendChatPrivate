@@ -5,6 +5,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.Collections;
 
+/** Esta clase adapta los datos del usuario al formato que Spring Security necesita. */
 public class CustomUserDetails implements UserDetails {
 
     private final User user;

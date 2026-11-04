@@ -2,10 +2,7 @@ package com.chatprivate.exception;
 
 import java.time.Instant;
 
-/**
- * Este es mi DTO estándar para devolver errores de API.
- * Cada vez que algo falle, el frontend recibirá un JSON con esta estructura.
- */
+/** Este objeto reúne la información que devolvemos cuando una petición falla. */
 public class ErrorResponseDto {
 
     private Instant timestamp; // La hora exacta del error

@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
+/** Aquí consulto y guardo la relación entre usuarios y conversaciones. */
 public interface ConversationParticipantRepository extends JpaRepository<ConversationParticipant, Long> {
 
     List<ConversationParticipant> findByConversation_Id(Long conversationId);

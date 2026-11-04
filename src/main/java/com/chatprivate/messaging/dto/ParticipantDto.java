@@ -2,6 +2,7 @@ package com.chatprivate.messaging.dto;
 
 import java.time.Instant;
 
+/** Este objeto contiene la información de un participante que compartimos con el cliente. */
 public class ParticipantDto {
     private Long userId;
     private String username;

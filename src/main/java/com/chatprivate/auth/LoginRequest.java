@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
+/** Estos son los datos que llegan cuando alguien intenta iniciar sesión. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

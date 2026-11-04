@@ -7,10 +7,7 @@ import lombok.Setter;
 
 import java.time.Instant;
 
-/**
- * Mi entidad JPA para la tabla 'users'.
- * Representa a un usuario en la base de datos.
- */
+/** Esta entidad representa una cuenta y sus datos guardados en la base de datos. */
 @Entity
 @Table(name = "users")
 @Getter

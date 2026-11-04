@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 
+/** Esta respuesta lleva el token y los datos necesarios para recuperar la clave privada del usuario. */
 @Getter
 @Setter
 @NoArgsConstructor

@@ -23,14 +23,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Tests de integración para MessageService.
- *
- * COBERTURA:
- * - Validación de permisos al enviar mensajes
- * - Guardado de mensajes y claves cifradas
- * - Validación de mapa de claves
- */
+/** Aquí pruebo el guardado de mensajes y los casos en que no se deben aceptar. */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
@@ -99,6 +92,7 @@ class MessageServiceTest {
         participantRepository.save(recipientP);
     }
 
+    // Compruebo que un participante pueda enviar y guardar un mensaje.
     @Test
     void sendAndStoreMessage_ShouldSaveMessage_WhenSenderIsParticipant() {
         // ARRANGE
@@ -129,6 +123,7 @@ class MessageServiceTest {
         assertEquals("clave_para_recipient", keys.get(0).getEncryptedKey());
     }
 
+    // Compruebo que alguien ajeno al chat no pueda enviar mensajes.
     @Test
     void sendAndStoreMessage_ShouldThrowAccessDenied_WhenSenderIsNotParticipant() {
         // ARRANGE
@@ -153,6 +148,7 @@ class MessageServiceTest {
         assertEquals(0, messages.size());
     }
 
+    // Compruebo que no se acepte el envío sin claves cifradas.
     @Test
     void sendAndStoreMessage_ShouldThrowException_WhenEncryptedKeysMapIsEmpty() {
         // ARRANGE
@@ -170,6 +166,7 @@ class MessageServiceTest {
         });
     }
 
+    // Compruebo que no se guarde una clave para alguien que no pertenece al chat.
     @Test
     void sendAndStoreMessage_ShouldIgnoreKey_WhenRecipientIsNotParticipant() {
         // ARRANGE

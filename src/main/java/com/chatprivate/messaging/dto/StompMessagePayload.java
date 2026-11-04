@@ -9,12 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.Map;
 
-/**
- * DTO para mensajes enviados por WebSocket/STOMP.
-
- * Este objeto representa un mensaje cifrado que el cliente
- * envía a través de WebSocket.
- */
+/** Este objeto representa el contenido que llega por el canal STOMP. */
 @Data
 @NoArgsConstructor
 public class StompMessagePayload {

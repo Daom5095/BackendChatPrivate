@@ -6,17 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
-/**
- * Servicio centralizado para validar permisos de acceso.
- *
- * Este servicio es el "guardián" de mi aplicación. Todas las operaciones
- * que requieren permisos específicos (leer mensajes, enviar mensajes, etc.)
- * pasan primero por aquí.
- *
- * IMPORTANTE: Todos los métodos lanzan AccessDeniedException si el
- * usuario NO tiene permiso. Estas excepciones son manejadas por mi
- * GlobalExceptionHandler.
- */
+/** Aquí compruebo si una persona puede leer, escribir o administrar una conversación. */
 @Service
 @RequiredArgsConstructor
 @Slf4j

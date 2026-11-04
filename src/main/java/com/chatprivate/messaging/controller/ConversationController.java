@@ -16,12 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * Controlador REST para operaciones de conversaciones.
- *
- * - Integrado PermissionService
- * - Validaciones de seguridad en todos los endpoints
- */
+/** Aquí están las rutas para crear conversaciones, administrar participantes y consultar mensajes. */
 @RestController
 @RequestMapping("/api/conversations")
 @RequiredArgsConstructor

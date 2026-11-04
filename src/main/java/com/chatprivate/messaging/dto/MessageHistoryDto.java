@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
+/** Este objeto reúne los datos de un mensaje que se muestra en el historial. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

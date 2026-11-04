@@ -22,11 +22,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Configuración central de Spring Security.
- * Aquí defino cómo se maneja la seguridad de mi API,
- * qué rutas son públicas, cuáles son privadas y cómo se validan los tokens.
- */
+/** Aquí configuro cómo se autentican las peticiones y qué rutas quedan protegidas. */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -59,8 +55,8 @@ public class SecurityConfig {
      */
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService);
+        DaoAuthenticationProvider authProvider =
+                new DaoAuthenticationProvider(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }

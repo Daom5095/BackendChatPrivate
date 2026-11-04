@@ -11,7 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.*;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.stomp.StompFrameHandler;
@@ -38,6 +37,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
 
+/** Aquí compruebo que el controlador STOMP entregue los mensajes al servicio del chat. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT) // Arranca en un puerto aleatorio
 @ActiveProfiles("test")
 class StompChatControllerTest {
@@ -51,7 +51,7 @@ class StompChatControllerTest {
     @Autowired
     private UserRepository userRepository;
 
-    // Usamos @SpyBean en lugar de @MockBean
+    // Usamos @MockitoSpyBean para espiar el MessageService real
     // @SpyBean nos da un objeto MessageService *real*, pero nos
     // permite "espiar" sus métodos (verificar si fueron llamados).
     @MockitoSpyBean
@@ -98,6 +98,7 @@ class StompChatControllerTest {
         }
     }
 
+    // Compruebo que un mensaje recibido llegue al servicio del chat.
     @Test
     void receiveMessage_ShouldCallMessageService_WhenMessageIsSent() throws Exception {
         // ARRANGE

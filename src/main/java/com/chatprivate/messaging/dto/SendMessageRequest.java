@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 
+/** Estos son los datos cifrados que llegan cuando se envía un mensaje. */
 public class SendMessageRequest {
 
     @NotNull(message = "El ID de la conversación es obligatorio")

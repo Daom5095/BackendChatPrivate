@@ -12,6 +12,7 @@ import com.chatprivate.user.CustomUserDetails;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/** Aquí están las rutas para consultar el usuario actual y la lista de usuarios. */
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -22,6 +23,7 @@ public class UserController {
         this.userRepository = userRepository;
     }
 
+    // Busco y devuelvo los datos de la cuenta que inició sesión.
     @GetMapping("/me")
     public ResponseEntity<UserDto> getMe(Authentication authentication) {
         // Obtenemos el UserDetails completo de la autenticación
@@ -30,6 +32,7 @@ public class UserController {
         return ResponseEntity.ok(new UserDto(userDetails.getUser().getId(), userDetails.getUsername()));
     }
 
+    // Devuelvo la lista de usuarios disponible para la aplicación.
     @GetMapping
     public ResponseEntity<List<UserDto>> getAllUsers(Authentication authentication) {
         String currentUsername = authentication.getName();

@@ -5,22 +5,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 
-/**
- * Logger especializado para eventos de seguridad.
- *
- * PROPÓSITO:
- * Centralizar el logging de eventos críticos de seguridad en un formato
- * estructurado y consistente, facilitando el análisis y auditoría.
- *
- * En producción, estos logs deberían:
- * 1. Ir a un archivo separado (security.log)
- * 2. Ser enviados a un SIEM (Security Information and Event Management)
- *    como Splunk, ELK Stack, o Datadog
- * 3. Generar alertas automáticas en caso de patrones sospechosos
- *
- * FORMATO DE LOG:
- * [SECURITY] [EVENTO] timestamp | userId | acción | resultado | detalles
- */
+/** Aquí dejo registro de eventos importantes relacionados con la seguridad. */
 @Component
 @Slf4j
 public class SecurityAuditLogger {
@@ -34,7 +19,6 @@ public class SecurityAuditLogger {
      * @param reason Razón del fallo (si aplica)
      */
     public void logLoginAttempt(String username, boolean success, String ip, String reason) {
-        String status = success ? "SUCCESS" : "FAILED";
         String details = reason != null ? reason : "N/A";
 
         if (success) {

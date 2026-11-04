@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/** Estos son los datos que llegan para crear una cuenta nueva. */
 @Data
 @NoArgsConstructor
 public class RegisterRequest {

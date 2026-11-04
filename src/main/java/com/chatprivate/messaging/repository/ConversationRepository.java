@@ -10,13 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repositorio para operaciones de BD sobre Conversaciones.
- *
- * ACTUALIZADO EN SESIÓN 3 - PARTE B:
- * - Añadido @EntityGraph para eliminar N+1 queries
- * - Queries optimizadas con fetch joins
- */
+/** Aquí están las consultas a la base de datos relacionadas con conversaciones. */
 @Repository
 public interface ConversationRepository extends JpaRepository<Conversation, Long> {
 

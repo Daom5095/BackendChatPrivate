@@ -2,6 +2,7 @@ package com.chatprivate.messaging.dto;
 
 import java.util.List;
 
+/** Estos son los datos que el cliente envía para crear una conversación. */
 public class CreateConversationRequest {
     private String type;
     private String title;

@@ -6,20 +6,14 @@ import com.chatprivate.security.SecurityAuditLogger;
 import com.chatprivate.user.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * Controlador REST para autenticación (registro y login).
- *
- *
- * - Añadido rate limiting en login y registro
- * - Protección contra fuerza bruta y spam
- * - Logging mejorado de eventos de seguridad
- * - Integrado SecurityAuditLogger
- */
+/** Aquí recibo las peticiones para registrar una cuenta e iniciar sesión. */
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -150,10 +144,14 @@ public class AuthController {
         // 3. Fallback: uso la IP directa de la conexión
         String remoteAddr = request.getRemoteAddr();
 
-        // Si estoy en localhost, uso un identificador fijo
-        // (en desarrollo, todas las peticiones vienen de 127.0.0.1 o ::1)
-        if ("0:0:0:0:0:0:0:1".equals(remoteAddr) || "::1".equals(remoteAddr)) {
-            return "127.0.0.1"; // Normalizo IPv6 localhost a IPv4
+        // Normalizo cualquier dirección de loopback para que comparta
+        // el mismo bucket de rate limit durante el desarrollo local.
+        try {
+            if (InetAddress.getByName(remoteAddr).isLoopbackAddress()) {
+                return "localhost";
+            }
+        } catch (UnknownHostException ignored) {
+            // Si la dirección no puede interpretarse, se conserva el valor recibido.
         }
 
         return remoteAddr;

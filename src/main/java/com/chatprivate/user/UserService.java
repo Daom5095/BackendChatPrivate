@@ -14,14 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Servicio principal para la lógica de negocio de Usuarios.
- *
- *
- * - Integrado SecurityAuditLogger para eventos de seguridad
- * - Mejorada la validación de datos
- * - Mejor manejo de errores
- */
+/** Aquí está la lógica para registrar usuarios, iniciar sesión y guardar claves públicas. */
 @Service
 @RequiredArgsConstructor
 public class UserService {

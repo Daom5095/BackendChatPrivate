@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
+/** Esta entidad representa una conversación guardada en la base de datos. */
 @Entity
 @Table(name = "conversations")
 public class Conversation {

@@ -2,6 +2,7 @@ package com.chatprivate.messaging.dto;
 
 import java.time.Instant;
 
+/** Esta es la información que devolvemos después de guardar un mensaje. */
 public class SendMessageResponse {
     private Long messageId;
     private Long conversationId;

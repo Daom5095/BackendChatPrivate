@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 
+/** Este repositorio permite consultar las claves cifradas de los mensajes. */
 public interface MessageKeyRepository extends JpaRepository<MessageKey, Long> {
     List<MessageKey> findByRecipientId(Long recipientId);
     List<MessageKey> findByMessageId(Long messageId);

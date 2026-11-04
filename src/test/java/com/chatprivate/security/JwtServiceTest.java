@@ -12,15 +12,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Tests unitarios para JwtService.
- *
- * COBERTURA:
- * - Generación de tokens
- * - Extracción de username
- * - Validación de tokens (válidos e inválidos)
- * - Tokens expirados (difícil de testear sin modificar el tiempo)
- */
+/** Aquí pruebo la creación y validación de los tokens JWT. */
 @SpringBootTest
 @ActiveProfiles("test")
 class JwtServiceTest {
@@ -40,6 +32,7 @@ class JwtServiceTest {
                 .build();
     }
 
+    // Compruebo que se genere un token con contenido.
     @Test
     void generateToken_ShouldReturnNonEmptyToken() {
         // ACT
@@ -51,6 +44,7 @@ class JwtServiceTest {
         assertTrue(token.split("\\.").length == 3); // JWT tiene 3 partes separadas por '.'
     }
 
+    // Compruebo que se pueda leer el usuario guardado en el token.
     @Test
     void extractUsername_ShouldReturnCorrectUsername() {
         // ARRANGE
@@ -63,6 +57,7 @@ class JwtServiceTest {
         assertEquals("testuser", extractedUsername);
     }
 
+    // Compruebo que un token vigente del usuario sea válido.
     @Test
     void isTokenValid_ShouldReturnTrue_WhenTokenIsValid() {
         // ARRANGE
@@ -80,6 +75,7 @@ class JwtServiceTest {
         assertTrue(isValid);
     }
 
+    // Compruebo que el token no sirva para otro usuario.
     @Test
     void isTokenValid_ShouldReturnFalse_WhenUsernameDoesNotMatch() {
         // ARRANGE
@@ -97,6 +93,7 @@ class JwtServiceTest {
         assertFalse(isValid);
     }
 
+    // Compruebo que se rechace un token mal formado.
     @Test
     void extractUsername_ShouldThrowException_WhenTokenIsMalformed() {
         // ARRANGE
@@ -108,6 +105,7 @@ class JwtServiceTest {
         });
     }
 
+    // Compruebo que se rechace un token vacío.
     @Test
     void extractUsername_ShouldThrowException_WhenTokenIsEmpty() {
         // ACT & ASSERT

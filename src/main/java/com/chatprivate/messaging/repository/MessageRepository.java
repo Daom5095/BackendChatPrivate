@@ -12,9 +12,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Repositorio para operaciones de BD sobre Mensajes.
- */
+/** Aquí están las consultas a la base de datos relacionadas con mensajes. */
 @Repository
 public interface MessageRepository extends JpaRepository<Message, Long> {
 

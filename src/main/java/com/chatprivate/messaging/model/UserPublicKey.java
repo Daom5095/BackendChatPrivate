@@ -3,6 +3,7 @@ package com.chatprivate.messaging.model;
 import jakarta.persistence.*;
 import java.time.Instant;
 
+/** Esta entidad guarda la clave pública que cada usuario comparte con la aplicación. */
 @Entity
 @Table(name = "user_public_keys")
 public class UserPublicKey {

@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+/** Estas rutas permiten guardar y consultar las claves públicas de los usuarios. */
 @RestController
 @RequestMapping("/api/messaging")
 public class MessagingRestController {
@@ -28,6 +29,7 @@ public class MessagingRestController {
     }
 
 
+    // Guardo la clave pública que el usuario comparte para recibir mensajes cifrados.
     @PostMapping("/public-key")
     public ResponseEntity<?> uploadPublicKey(Authentication authentication,
                                              @RequestBody String publicKeyPem) {
@@ -35,6 +37,7 @@ public class MessagingRestController {
         return ResponseEntity.ok().build();
     }
 
+    // Busco la clave pública del usuario que se va a agregar al chat.
     @GetMapping("/public-key/{userId}")
     public ResponseEntity<?> getPublicKey(@PathVariable Long userId) {
         return userPublicKeyRepository.findById(userId)

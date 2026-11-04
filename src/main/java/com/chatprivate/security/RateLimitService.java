@@ -10,27 +10,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Servicio de Rate Limiting (Limitación de Velocidad).
- *
- * Este servicio protege mi API contra:
- * - Ataques de fuerza bruta (intentos masivos de login)
- * - Spam (creación masiva de cuentas)
- * - DoS (Denial of Service - saturación del servidor)
- *
- * FUNCIONAMIENTO:
- * Usa el algoritmo "Token Bucket":
- * - Cada usuario/IP tiene una "cubeta" (bucket) con tokens
- * - Cada petición consume 1 token
- * - Los tokens se recargan automáticamente con el tiempo
- * - Si no hay tokens, la petición es rechazada
- *
- * EJEMPLO:
- * Login: 5 tokens/minuto
- * - El usuario puede hacer 5 intentos de login
- * - Después debe esperar ~12 segundos para cada intento adicional
- * - Esto hace IMPOSIBLE la fuerza bruta (pasarían años)
- */
+/** Este servicio limita cuántos intentos de inicio de sesión y registro se permiten. */
 @Service
 @Slf4j
 public class RateLimitService {

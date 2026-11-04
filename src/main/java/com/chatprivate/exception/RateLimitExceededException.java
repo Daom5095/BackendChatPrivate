@@ -1,11 +1,6 @@
 package com.chatprivate.exception;
 
-/**
- * Excepción lanzada cuando un usuario excede el límite de peticiones permitidas.
- *
- * Esta excepción será manejada por el GlobalExceptionHandler y convertida
- * en una respuesta HTTP 429 (Too Many Requests).
- */
+/** Esta excepción avisa que se superó el límite de intentos permitido. */
 public class RateLimitExceededException extends RuntimeException {
 
     /**

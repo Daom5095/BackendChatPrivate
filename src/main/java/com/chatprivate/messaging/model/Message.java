@@ -3,10 +3,7 @@ package com.chatprivate.messaging.model;
 import jakarta.persistence.*;
 import java.time.Instant;
 
-/**
- * Entidad JPA para la tabla 'messages'.
- * Representa un único mensaje cifrado enviado en una conversación.
- */
+/** Esta entidad guarda el mensaje cifrado y quién lo envió. */
 @Entity
 @Table(
         name = "messages",

@@ -6,7 +6,7 @@ spring:
   # Configuración de BD de prueba
   datasource:
     # H2 en memoria, se borra al terminar
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:mem:${random.uuid};DB_CLOSE_DELAY=-1
     username: sa
     password: ""
     driver-class-name: org.h2.Driver

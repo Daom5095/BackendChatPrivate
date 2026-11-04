@@ -14,11 +14,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-/**
- * Tests unitarios COMPLETOS para PermissionService.
- *
- * COBERTURA: Todos los métodos públicos del servicio.
- */
+/** Aquí pruebo los permisos para participar, leer, escribir y administrar conversaciones. */
 @ExtendWith(MockitoExtension.class)
 class PermissionServiceTest {
 
@@ -32,6 +28,7 @@ class PermissionServiceTest {
     // TESTS PARA validateIsParticipant
     // ==============================================
 
+    // Compruebo que se permita continuar si el usuario participa en el chat.
     @Test
     void validateIsParticipant_ShouldDoNothing_WhenUserIsParticipant() {
         Long userId = 1L;
@@ -46,6 +43,7 @@ class PermissionServiceTest {
         verify(participantRepository).existsByConversation_IdAndUserId(conversationId, userId);
     }
 
+    // Compruebo que se bloquee a quien no participa en el chat.
     @Test
     void validateIsParticipant_ShouldThrowAccessDenied_WhenUserIsNotParticipant() {
         Long userId = 1L;
@@ -64,6 +62,7 @@ class PermissionServiceTest {
     // TESTS PARA validateIsOwner
     // ==============================================
 
+    // Compruebo que el propietario pueda hacer acciones de administración.
     @Test
     void validateIsOwner_ShouldDoNothing_WhenUserIsOwner() {
         Long userId = 1L;
@@ -81,6 +80,7 @@ class PermissionServiceTest {
         });
     }
 
+    // Compruebo que un participante normal no tenga permisos de propietario.
     @Test
     void validateIsOwner_ShouldThrowAccessDenied_WhenUserIsNotOwner() {
         Long userId = 1L;
@@ -98,6 +98,7 @@ class PermissionServiceTest {
         });
     }
 
+    // Compruebo que alguien ajeno al chat no pueda administrarlo.
     @Test
     void validateIsOwner_ShouldThrowAccessDenied_WhenUserIsNotParticipant() {
         Long userId = 1L;
@@ -115,6 +116,7 @@ class PermissionServiceTest {
     // TESTS PARA validateCanRemoveParticipant
     // ==============================================
 
+    // Compruebo que el propietario pueda quitar a otro participante.
     @Test
     void validateCanRemoveParticipant_ShouldAllow_WhenRequesterIsOwner() {
         Long ownerId = 1L;
@@ -135,6 +137,7 @@ class PermissionServiceTest {
         });
     }
 
+    // Compruebo que un miembro pueda quitarse a sí mismo.
     @Test
     void validateCanRemoveParticipant_ShouldAllow_WhenMemberRemovesThemselves() {
         Long memberId = 1L;
@@ -154,6 +157,7 @@ class PermissionServiceTest {
         });
     }
 
+    // Compruebo que un miembro no pueda quitar a otra persona.
     @Test
     void validateCanRemoveParticipant_ShouldThrow_WhenMemberTriesToRemoveOther() {
         Long memberId = 1L;
@@ -178,6 +182,7 @@ class PermissionServiceTest {
     // TESTS PARA validateCanReadMessages
     // ==============================================
 
+    // Compruebo que un participante pueda leer mensajes.
     @Test
     void validateCanReadMessages_ShouldWork_WhenUserIsParticipant() {
         Long userId = 1L;
@@ -191,6 +196,7 @@ class PermissionServiceTest {
         });
     }
 
+    // Compruebo que alguien ajeno no pueda leer mensajes.
     @Test
     void validateCanReadMessages_ShouldThrow_WhenUserIsNotParticipant() {
         Long userId = 1L;
@@ -208,6 +214,7 @@ class PermissionServiceTest {
     // TESTS PARA validateCanSendMessages
     // ==============================================
 
+    // Compruebo que un participante pueda enviar mensajes.
     @Test
     void validateCanSendMessages_ShouldWork_WhenUserIsParticipant() {
         Long userId = 1L;
@@ -221,6 +228,7 @@ class PermissionServiceTest {
         });
     }
 
+    // Compruebo que alguien ajeno no pueda enviar mensajes.
     @Test
     void validateCanSendMessages_ShouldThrow_WhenUserIsNotParticipant() {
         Long userId = 1L;

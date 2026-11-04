@@ -13,14 +13,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
-/**
- * Servicio encargado de todas las operaciones de JSON Web Tokens (JWT).
-
- * Funciones principales:
- * - Generar tokens JWT firmados
- * - Validar tokens (firma + expiración + usuario)
- * - Extraer información (claims) de los tokens
- */
+/** Aquí genero, leo y valido los tokens JWT que usa la aplicación. */
 @Service
 public class JwtService {
 
@@ -151,8 +144,8 @@ public class JwtService {
      */
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
-        return (username != null
+        return username != null
                 && username.equals(userDetails.getUsername())
-                && !isTokenExpired(token));
+                && !isTokenExpired(token);
     }
 }

@@ -20,12 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Servicio central para el envío y almacenamiento de mensajes.
- *
- * Este servicio es llamado por el StompChatController cuando
- * un mensaje llega por WebSocket.
- */
+/** Aquí valido y guardo los mensajes cifrados que envían los participantes. */
 @Service
 @Slf4j
 public class MessageService {

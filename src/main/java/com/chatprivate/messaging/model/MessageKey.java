@@ -2,9 +2,7 @@ package com.chatprivate.messaging.model;
 
 import jakarta.persistence.*;
 
-/**
- * Entidad JPA para la tabla 'message_keys'.
- */
+/** Esta entidad guarda la clave del mensaje cifrada para cada destinatario. */
 @Entity
 @Table(
         name = "message_keys",

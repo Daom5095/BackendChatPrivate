@@ -6,10 +6,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
-/**
- * Este DTO representa el último mensaje de una conversación
- * para mostrarlo en la lista de chats del home.
- */
+/** Este objeto guarda el resumen del último mensaje de una conversación. */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

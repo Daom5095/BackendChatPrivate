@@ -39,6 +39,7 @@ import java.time.Instant;
                 )
         }
 )
+/** Esta entidad relaciona a una persona con una conversación y su rol dentro de ella. */
 public class ConversationParticipant {
 
     @Id

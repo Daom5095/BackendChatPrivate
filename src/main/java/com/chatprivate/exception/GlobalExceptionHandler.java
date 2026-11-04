@@ -13,11 +13,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.stream.Collectors;
 
-/**
- * Controlador global de excepciones.
- * Este componente centraliza el manejo de errores de TODA la API REST.
- * Cada tipo de excepción se convierte en una respuesta HTTP apropiada.
- */
+/** Aquí manejo los errores de la API para responder de forma ordenada. */
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {

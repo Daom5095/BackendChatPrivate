@@ -21,17 +21,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.function.Function;
 
-/**
- * Servicio para la lógica de negocio de Conversaciones.
- *
- * ACTUALIZADO EN SESIÓN 2:
- * - Integrado PermissionService para todas las operaciones
- * - Validaciones de seguridad antes de cada operación
- * - Mejor logging de eventos de seguridad
- *
- * ACTUALIZADO AHORA:
- * - getUserConversations() ahora ordena los chats por el último mensaje.
- */
+/** Aquí está la lógica para crear conversaciones, revisar permisos y consultar sus mensajes. */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -428,6 +418,7 @@ public class ConversationService {
         return r;
     }
 
+    // Busco una conversación y preparo su respuesta con participantes.
     private ConversationResponse getConversationResponseById(Long conversationId) {
         Conversation conv = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -447,6 +438,7 @@ public class ConversationService {
         return toResponse(conv, participants, lastMessageDto);
     }
 
+    // Paso los datos de un participante al formato de respuesta de la API.
     private ParticipantDto toParticipantDto(ConversationParticipant p, Map<Long, User> userMap) {
         ParticipantDto dto = new ParticipantDto();
         dto.setUserId(p.getUserId());

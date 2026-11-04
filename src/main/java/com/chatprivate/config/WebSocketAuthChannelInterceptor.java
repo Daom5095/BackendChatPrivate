@@ -15,6 +15,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 
 
+/** Este interceptor revisa la identidad del usuario en los mensajes WebSocket. */
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -23,6 +24,7 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
+    // Reviso el token y el usuario antes de dejar pasar un mensaje entrante.
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);

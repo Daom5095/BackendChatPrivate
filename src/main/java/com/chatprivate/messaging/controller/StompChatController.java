@@ -11,12 +11,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 
-/**
- * Controlador STOMP para mensajes de chat en tiempo real.
- *
- * - Mejor manejo de errores (delegado a WebSocketExceptionHandler)
- * - Logging mejorado
- */
+/** Este controlador recibe por STOMP los mensajes que se envían al chat. */
 @Controller
 @RequiredArgsConstructor
 @Slf4j

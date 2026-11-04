@@ -1,6 +1,7 @@
 package com.chatprivate.messaging.dto;
 
 import jakarta.validation.constraints.NotNull;
+/** Estos son los datos que llegan para agregar a alguien a una conversación. */
 public class AddParticipantRequest {
 
     @NotNull(message = "El ID del usuario (userId) a añadir es obligatorio")

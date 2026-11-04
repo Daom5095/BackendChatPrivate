@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+/** Aquí pruebo el inicio de sesión y las respuestas cuando las credenciales no son válidas. */
 @ExtendWith(MockitoExtension.class) // Activa Mockito
 class UserServiceTest {
 
@@ -63,6 +64,7 @@ class UserServiceTest {
     }
 
     // --- TEST 1: El "Happy Path" (Login Exitoso) ---
+    // Compruebo que unas credenciales correctas permitan iniciar sesión.
     @Test
     void login_ShouldReturnToken_WhenCredentialsAreValid() {
         // ARRANGE (Continuación)
@@ -95,6 +97,7 @@ class UserServiceTest {
     }
 
     // --- TEST 2: "Sad Path" (Contraseña Incorrecta) ---
+    // Compruebo que una contraseña equivocada no permita iniciar sesión.
     @Test
     void login_ShouldThrowBadCredentials_WhenPasswordIsWrong() {
         // ARRANGE
@@ -122,6 +125,7 @@ class UserServiceTest {
     }
 
     // --- TEST 3: "Sad Path" (Usuario No Existe) ---
+    // Compruebo la respuesta cuando la cuenta no existe.
     @Test
     void login_ShouldThrowUsernameNotFound_WhenUserDoesNotExist() {
         // ARRANGE

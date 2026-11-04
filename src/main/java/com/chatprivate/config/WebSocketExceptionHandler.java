@@ -12,16 +12,7 @@ import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Manejador global de excepciones para WebSocket/STOMP.
- *
-
- * Este handler captura las excepciones y envía un mensaje de error
- * al cliente a través del canal "/queue/errors".
- *
- * El cliente debe subscribirse a "/user/queue/errors" para recibir
- * estos mensajes.
- */
+/** Esta clase convierte errores del chat WebSocket en respuestas que el cliente puede entender. */
 @ControllerAdvice
 @RequiredArgsConstructor
 @Slf4j
