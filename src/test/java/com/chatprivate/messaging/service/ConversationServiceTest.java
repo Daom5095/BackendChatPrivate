@@ -334,6 +334,204 @@ class ConversationServiceTest {
                         && m.getEncryptedKey().equals("keyForA_3")));
     }
 
+    // Compruebo qué pasa cuando el chat todavía no tiene mensajes.
+    @Test
+    void getMessageHistory_ShouldReturnEmptyList_WhenConversationHasNoMessages() {
+        Conversation emptyConversation = createTestConversation("group", userA);
+
+        List<MessageHistoryDto> history = conversationService.getMessageHistory(
+                emptyConversation.getId(), userA.getId());
+
+        assertNotNull(history);
+        assertTrue(history.isEmpty());
+    }
+
+    // Si el usuario no tiene una clave para un mensaje, ese mensaje no se devuelve.
+    @Test
+    void getMessageHistory_ShouldSkipMessagesWithoutUserKey() {
+        Message message = new Message();
+        message.setConversation(conv1);
+        message.setSenderId(userB.getId());
+        message.setCiphertext("Mensaje sin clave para userA");
+        messageRepository.save(message);
+
+        List<MessageHistoryDto> history = conversationService.getMessageHistory(
+                conv1.getId(), userA.getId());
+
+        assertTrue(history.stream().noneMatch(m ->
+                "Mensaje sin clave para userA".equals(m.getCiphertext())));
+    }
+
+    // Compruebo que una página que queda fuera del historial salga vacía.
+    @Test
+    void getMessageHistoryPaged_ShouldReturnEmptyPage_WhenPageHasNoMessages() {
+        Page<MessageHistoryDto> page = conversationService.getMessageHistoryPaged(
+                conv2.getId(), userA.getId(), 20, 10);
+
+        assertTrue(page.isEmpty());
+        assertEquals(2, page.getTotalElements());
+    }
+
+    // Compruebo que el historial paginado también omita mensajes sin clave del usuario.
+    @Test
+    void getMessageHistoryPaged_ShouldSkipMessagesWithoutUserKey() {
+        Message message = new Message();
+        message.setConversation(conv1);
+        message.setSenderId(userB.getId());
+        message.setCiphertext("Mensaje paginado sin clave");
+        messageRepository.save(message);
+
+        Page<MessageHistoryDto> page = conversationService.getMessageHistoryPaged(
+                conv1.getId(), userA.getId(), 0, 10);
+
+        // Confirmo que los mensajes que sí tienen clave siguen apareciendo.
+        assertTrue(page.getContent().stream().anyMatch(m ->
+                "Hola A, este es el chat 1".equals(m.getCiphertext())));
+        assertTrue(page.getContent().stream().noneMatch(m ->
+                "Mensaje paginado sin clave".equals(m.getCiphertext())));
+    }
+
+    // Si no hay conversaciones, la lista del usuario debe quedar vacía.
+    @Test
+    void getUserConversations_ShouldReturnEmptyList_WhenUserHasNoConversations() {
+        User userWithoutChats = userRepository.save(User.builder()
+                .username("userWithoutChats")
+                .email("without-chats@test.com")
+                .password("pass")
+                .build());
+
+        assertTrue(conversationService.getUserConversations(userWithoutChats.getId()).isEmpty());
+    }
+
+    // Compruebo que los chats sin mensajes aparezcan después de los que sí tienen actividad.
+    @Test
+    void getUserConversations_ShouldPutConversationsWithoutMessagesAtTheEnd() {
+        Conversation firstEmptyConversation = createTestConversation("group", userA, userB);
+        Conversation secondEmptyConversation = createTestConversation("group", userA, userC);
+
+        List<ConversationResponse> conversations = conversationService.getUserConversations(userA.getId());
+
+        assertTrue(java.util.Set.of(firstEmptyConversation.getId(), secondEmptyConversation.getId())
+                .contains(conversations.get(conversations.size() - 1).getId()));
+        assertTrue(java.util.Set.of(firstEmptyConversation.getId(), secondEmptyConversation.getId())
+                .contains(conversations.get(conversations.size() - 2).getId()));
+        assertNull(conversations.get(conversations.size() - 1).getLastMessage());
+        assertNull(conversations.get(conversations.size() - 2).getLastMessage());
+    }
+
+    // Al crear un chat directo existente, no debo duplicar la conversación.
+    @Test
+    void createConversation_ShouldReturnExistingDirectConversation() {
+        CreateConversationRequest request = new CreateConversationRequest();
+        request.setType("DIRECT");
+        request.setParticipantIds(List.of(userB.getId()));
+
+        ConversationResponse response = conversationService.createConversation(request, userA.getId());
+
+        assertEquals(conv1.getId(), response.getId());
+        assertEquals(2, conversationRepository.count());
+    }
+
+    // Si el usuario inicia un chat directo consigo mismo, se crea sin buscar otro chat.
+    @Test
+    void createConversation_ShouldCreateDirectChatWithDefaultType_WhenUserSelectsThemselves() {
+        CreateConversationRequest request = new CreateConversationRequest();
+        request.setType("direct");
+        request.setParticipantIds(List.of(userA.getId()));
+
+        ConversationResponse response = conversationService.createConversation(request, userA.getId());
+
+        assertNotNull(response.getId());
+        assertEquals("direct", response.getType());
+        assertEquals(1, response.getParticipants().size());
+        assertNull(response.getTitle());
+    }
+
+    // Compruebo valores por defecto y que se ignoren participantes repetidos o inexistentes.
+    @Test
+    void createConversation_ShouldUseDefaultsAndIgnoreInvalidParticipantIds() {
+        CreateConversationRequest request = new CreateConversationRequest();
+        request.setParticipantIds(java.util.Arrays.asList(
+                userB.getId(), userB.getId(), userA.getId(), null, 999999L));
+
+        ConversationResponse response = conversationService.createConversation(request, userA.getId());
+
+        assertEquals("direct", response.getType());
+        assertEquals(2, response.getParticipants().size());
+        assertTrue(response.getParticipants().stream().anyMatch(p -> p.getUserId().equals(userA.getId())));
+        assertTrue(response.getParticipants().stream().anyMatch(p -> p.getUserId().equals(userB.getId())));
+    }
+
+    // Si intento agregar a alguien que ya está en el chat, no se duplica.
+    @Test
+    void addParticipant_ShouldDoNothing_WhenUserIsAlreadyParticipant() {
+        AddParticipantRequest request = new AddParticipantRequest();
+        request.setUserId(userB.getId());
+
+        conversationService.addParticipant(conv1.getId(), userA.getId(), request);
+
+        assertEquals(2, participantRepository.findByConversation_Id(conv1.getId()).size());
+    }
+
+    // No puedo agregar a alguien que no existe en la aplicación.
+    @Test
+    void addParticipant_ShouldThrowException_WhenUserDoesNotExist() {
+        AddParticipantRequest request = new AddParticipantRequest();
+        request.setUserId(999999L);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> conversationService.addParticipant(conv1.getId(), userA.getId(), request));
+    }
+
+    // Compruebo que el rol vacío se guarde como miembro.
+    @Test
+    void addParticipant_ShouldUseMemberRole_WhenRoleIsEmpty() {
+        AddParticipantRequest request = new AddParticipantRequest();
+        request.setUserId(userC.getId());
+        request.setRole("");
+
+        conversationService.addParticipant(conv1.getId(), userA.getId(), request);
+
+        ConversationParticipant added = participantRepository
+                .findByConversation_IdAndUserId(conv1.getId(), userC.getId()).orElseThrow();
+        assertEquals("member", added.getRole());
+    }
+
+    // Si la conversación no existe, el servicio debe avisarlo.
+    @Test
+    void addParticipant_ShouldThrowException_WhenConversationDoesNotExist() {
+        AddParticipantRequest request = new AddParticipantRequest();
+        request.setUserId(userC.getId());
+
+        assertThrows(AccessDeniedException.class,
+                () -> conversationService.addParticipant(999999L, userA.getId(), request));
+    }
+
+    // Si el participante no pertenece al chat, no se puede eliminar.
+    @Test
+    void removeParticipant_ShouldThrowException_WhenParticipantIsNotInConversation() {
+        assertThrows(IllegalArgumentException.class,
+                () -> conversationService.removeParticipant(conv1.getId(), userA.getId(), userC.getId()));
+    }
+
+    // Compruebo las listas vacías y el nombre de respaldo cuando falta el usuario.
+    @Test
+    void getParticipants_ShouldHandleEmptyListAndUnknownUser() {
+        Conversation emptyConversation = new Conversation();
+        emptyConversation.setType("group");
+        emptyConversation = conversationRepository.save(emptyConversation);
+        assertTrue(conversationService.getParticipants(emptyConversation.getId()).isEmpty());
+
+        ConversationParticipant orphanParticipant = new ConversationParticipant();
+        orphanParticipant.setConversation(emptyConversation);
+        orphanParticipant.setUserId(999999L);
+        orphanParticipant.setRole("member");
+        participantRepository.save(orphanParticipant);
+
+        assertEquals("Usuario Desconocido",
+                conversationService.getParticipants(emptyConversation.getId()).get(0).getUsername());
+    }
+
 
     /**
      * Helper para añadir un mensaje y sus claves cifradas a la BD

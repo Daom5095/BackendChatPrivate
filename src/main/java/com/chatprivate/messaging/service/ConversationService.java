@@ -112,7 +112,8 @@ public class ConversationService {
 
         if (!messagePage.hasContent()) {
             log.debug("📭 No hay mensajes en esta página para conversación {}", conversationId);
-            return Page.empty(pageable);
+            return new org.springframework.data.domain.PageImpl<>(
+                    Collections.emptyList(), pageable, messagePage.getTotalElements());
         }
 
         List<Long> messageIds = messagePage.getContent().stream()

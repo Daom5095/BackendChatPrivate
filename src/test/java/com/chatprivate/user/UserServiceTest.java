@@ -2,6 +2,8 @@ package com.chatprivate.user;
 
 import com.chatprivate.auth.AuthResponse;
 import com.chatprivate.auth.LoginRequest;
+import com.chatprivate.auth.RegisterRequest;
+import com.chatprivate.messaging.model.UserPublicKey;
 import com.chatprivate.messaging.repository.UserPublicKeyRepository;
 import com.chatprivate.security.JwtService;
 import com.chatprivate.security.SecurityAuditLogger;
@@ -142,5 +144,114 @@ class UserServiceTest {
 
         // Verifica que el log de auditoría de FALLO fue llamado
         verify(auditLogger).logLoginAttempt("nonExistentUser", false, "N/A", "Usuario no encontrado");
+    }
+
+    // No permito registrar un nombre de usuario que ya está tomado.
+    @Test
+    void register_ShouldFail_WhenUsernameAlreadyExists() {
+        RegisterRequest request = registerRequest();
+        when(userRepository.existsByUsername(request.getUsername())).thenReturn(true);
+
+        assertThrows(IllegalArgumentException.class, () -> userService.register(request));
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    // Tampoco permito registrar un email que ya esté registrado.
+    @Test
+    void register_ShouldFail_WhenEmailAlreadyExists() {
+        RegisterRequest request = registerRequest();
+        when(userRepository.existsByUsername(request.getUsername())).thenReturn(false);
+        when(userRepository.existsByEmail(request.getEmail())).thenReturn(true);
+
+        assertThrows(IllegalArgumentException.class, () -> userService.register(request));
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    // Compruebo que el registro guarde la clave pública y devuelva un token.
+    @Test
+    void register_ShouldSavePublicKeyAndReturnToken() {
+        RegisterRequest request = registerRequest();
+        when(userRepository.existsByUsername(request.getUsername())).thenReturn(false);
+        when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
+        when(passwordEncoder.encode(request.getPassword())).thenReturn("hashedPassword");
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+        when(jwtService.generateToken(testUser)).thenReturn("fake.jwt.token");
+
+        AuthResponse response = userService.register(request);
+
+        assertEquals("fake.jwt.token", response.getToken());
+        verify(userPublicKeyRepository).save(argThat(key ->
+                testUser.getId().equals(key.getUserId())
+                        && request.getPublicKey().equals(key.getPublicKeyPem())));
+    }
+
+    // Si el registro llega sin clave pública, guardo el usuario y dejo el aviso.
+    @Test
+    void register_ShouldLogWarning_WhenPublicKeyIsMissing() {
+        RegisterRequest request = registerRequest();
+        request.setPublicKey(null);
+        when(userRepository.existsByUsername(request.getUsername())).thenReturn(false);
+        when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
+        when(passwordEncoder.encode(request.getPassword())).thenReturn("hashedPassword");
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+        when(jwtService.generateToken(testUser)).thenReturn("fake.jwt.token");
+
+        assertEquals("fake.jwt.token", userService.register(request).getToken());
+
+        verify(userPublicKeyRepository, never()).save(any(UserPublicKey.class));
+        verify(auditLogger).logSuspiciousActivity(
+                eq("Registro sin clave pública"), contains(testUser.getUsername()));
+    }
+
+    // Si faltan los datos cifrados de la clave privada, no devuelvo un login incompleto.
+    @Test
+    void login_ShouldFail_WhenEncryptedKeyDataIsMissing() {
+        testUser.setKekSalt(null);
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches("correctPassword", "hashedPassword123")).thenReturn(true);
+        when(jwtService.generateToken(testUser)).thenReturn("fake.jwt.token");
+
+        assertThrows(RuntimeException.class, () -> userService.login(loginRequest));
+        verify(auditLogger).logSecurityError(contains("testuser"), any(RuntimeException.class));
+    }
+
+    // Al subir una clave nueva, la creo si el usuario todavía no tiene una guardada.
+    @Test
+    void uploadPublicKey_ShouldCreateKey_WhenUserHasNoKeyYet() {
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        when(userPublicKeyRepository.findByUserId(testUser.getId())).thenReturn(Optional.empty());
+
+        userService.uploadPublicKey("testuser", "public-key-pem");
+
+        verify(userPublicKeyRepository).save(argThat(key ->
+                testUser.getId().equals(key.getUserId())
+                        && "public-key-pem".equals(key.getPublicKeyPem())));
+    }
+
+    // Si el usuario ya tenía una clave pública, actualizo esa misma.
+    @Test
+    void uploadPublicKey_ShouldUpdateExistingKey() {
+        UserPublicKey existingKey = new UserPublicKey();
+        existingKey.setUserId(testUser.getId());
+        existingKey.setPublicKeyPem("old-key");
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        when(userPublicKeyRepository.findByUserId(testUser.getId())).thenReturn(Optional.of(existingKey));
+
+        userService.uploadPublicKey("testuser", "new-key");
+
+        verify(userPublicKeyRepository).save(existingKey);
+        assertEquals("new-key", existingKey.getPublicKeyPem());
+    }
+
+    private RegisterRequest registerRequest() {
+        RegisterRequest request = new RegisterRequest();
+        request.setUsername("newuser");
+        request.setEmail("newuser@test.com");
+        request.setPassword("password123");
+        request.setPublicKey("public-key-pem");
+        request.setKekSalt("salt");
+        request.setEncryptedPrivateKey("encrypted-private-key");
+        request.setKekIv("iv");
+        return request;
     }
 }
